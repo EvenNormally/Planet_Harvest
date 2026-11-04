@@ -1,6 +1,7 @@
 {
   "name": "PlanetHarvest.PlayModeTests",
   "rootNamespace": "PlanetHarvest.Tests",
+  "references": ["PlanetHarvest.Runtime", "Unity.InputSystem"],
   "optionalUnityReferences": [
     "TestAssemblies"
   ],

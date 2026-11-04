@@ -1,5 +1,7 @@
 # Planet Harvest – Spielidee
 
+Die ausführliche Fassung mit Spielregeln, erstem spielbaren Umfang und offenen Entscheidungen steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Einzelne Codex-Aufträge stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Dieses Dokument bleibt die kurze Übersicht.
+
 First-Person-Mining und Automatisierung auf kugelförmigen Planeten für Windows PC.
 Der Spieler beginnt auf einem kleinen Mond mit einfachem Bohrer und kleinen Containern.
 Ein erdähnlicher Planet mit eigenen Biomen und Materialien folgt später.

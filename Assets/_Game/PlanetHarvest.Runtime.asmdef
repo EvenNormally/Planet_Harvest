@@ -1,0 +1,5 @@
+{
+  "name": "PlanetHarvest.Runtime",
+  "rootNamespace": "PlanetHarvest",
+  "references": ["Unity.InputSystem", "Unity.ugui", "Unity.TextMeshPro"]
+}

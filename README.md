@@ -63,4 +63,5 @@ Vor Batch-Tests den interaktiven Editor regulär schließen. CI prüft die Repos
 Unity-Lizenz und Editor-Tests werden lokal geprüft. Kein Cloud-Unity-Test wird vorgetäuscht.
 
 Weitere Dokumente: [Architektur](ARCHITECTURE.md), [Spielidee](GAME_DESIGN.md),
+[Spielkonzept](Docs/GAME_CONCEPT.md), [Codex-Implementierungsplan](Docs/IMPLEMENTATION_PLAN.md),
 [Roadmap](DEVELOPMENT_ROADMAP.md), [Prüfbericht](Docs/SETUP_REPORT.md).

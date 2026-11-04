@@ -1,5 +1,7 @@
 # Entwicklungsroadmap
 
+Die operativen Codex-Aufträge und ihre Akzeptanzkriterien stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Das ausführliche Spielkonzept steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Diese Tabelle bleibt die Phasenübersicht.
+
 Jede Phase endet mit Review, nachvollziehbaren Tests und einem spielbaren Prüfstand.
 Zahlen für Performance erst auf gemeinsam festgelegter Referenzhardware messen.
 

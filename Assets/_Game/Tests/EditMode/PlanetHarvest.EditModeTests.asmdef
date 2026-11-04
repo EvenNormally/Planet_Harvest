@@ -1,6 +1,7 @@
 {
   "name": "PlanetHarvest.EditModeTests",
   "rootNamespace": "PlanetHarvest.Tests",
+  "references": ["PlanetHarvest.Runtime"],
   "includePlatforms": [
     "Editor"
   ],
