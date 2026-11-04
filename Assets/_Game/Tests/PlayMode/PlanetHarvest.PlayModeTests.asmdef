@@ -1,0 +1,8 @@
+{
+  "name": "PlanetHarvest.PlayModeTests",
+  "rootNamespace": "PlanetHarvest.Tests",
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}

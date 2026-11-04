@@ -1,0 +1,17 @@
+name: Repository integrity
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  repository-integrity:
+    name: Repository integrity
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Unity source and metadata
+        shell: pwsh
+        run: ./Tools/Validate-Repository.ps1
+# Unity Editor tests run locally; no licensed Unity cloud runner is configured.

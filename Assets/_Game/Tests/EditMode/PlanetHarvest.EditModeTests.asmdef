@@ -1,0 +1,11 @@
+{
+  "name": "PlanetHarvest.EditModeTests",
+  "rootNamespace": "PlanetHarvest.Tests",
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}
