@@ -13,7 +13,7 @@ namespace PlanetHarvest.Mining
         [SerializeField] private RadialPlayer player;
         [SerializeField] private Camera view;
         public string Hint { get; private set; } = "Blicke auf den Boden und bohre mit LMB.";
-        public string Feedback { get; private set; } = "Ziel: 1 m³ Regolith versenden.";
+        public string Feedback { get; private set; } = "Ziel: Kanister fuellen und Regolith versenden.";
         public const float Reach = 5f;
 
         private void Update()
@@ -28,7 +28,9 @@ namespace PlanetHarvest.Mining
             var terminal = hit.collider.GetComponent<HarvestTerminal>();
             if (terminal != null)
             {
-                Hint = terminal.IsElevator
+                Hint = terminal.IsReturningCanister
+                    ? (game.Session.Buffer.Amount > 0 && game.Session.Container.Free > 0 ? "E: persoenlichen Kanister entleeren" : "E: vollen Versandkanister abschicken")
+                    : terminal.IsElevator
                     ? $"E: vollen Container versenden (+{game.Session.ShipmentPrice} Credits)"
                     : "E: Regolith vom Puffer in den 1-m³-Container füllen";
                 if (player.InteractPressed) UseTerminal(terminal);
@@ -36,7 +38,7 @@ namespace PlanetHarvest.Mining
             }
             if (hit.collider.GetComponentInParent<VoxelMoon>() == moon)
             {
-                Hint = game.Session.Buffer.Free == 0 ? "Puffer voll! Am cyanfarbenen Container entleeren." : "LMB: 1 m³ Regolith bohren";
+                Hint = game.Session.Buffer.Free == 0 ? "Kanister voll! Am cyanfarbenen Container entleeren." : $"LMB: {game.Session.MiningVolume / 1000000f:0.##} m³ Regolith abbauen";
                 if (player.MinePressed) Mine(hit);
             }
             else Hint = "Blicke auf Regolith, Container oder Elevator-Terminal.";
@@ -46,22 +48,29 @@ namespace PlanetHarvest.Mining
         {
             if (hit.collider == null || hit.collider.GetComponentInParent<VoxelMoon>() != moon) return false;
             bool mined = moon.TryMine(game.Session, moon.CellAt(hit));
-            Feedback = mined ? "1 m³ Regolith gewonnen." : "Abbau blockiert: Puffer voll oder Luft.";
+            Feedback = mined ? $"{game.Session.MiningVolume / 1000000f:0.##} m³ Regolith gewonnen." : "Abbau blockiert: Kanister voll oder Luft.";
             return mined;
         }
 
         public bool UseTerminal(HarvestTerminal terminal)
         {
+            if (terminal == null) return false;
+            if (game.Session.IsShipping)
+            {
+                Feedback = "Versandkanister unterwegs. Bitte auf die leere Rueckkehr warten.";
+                return false;
+            }
             bool success;
-            if (terminal.IsElevator)
+            if (terminal.IsElevator || (terminal.IsReturningCanister &&
+                (game.Session.Buffer.Amount == 0 || game.Session.Container.Free == 0)))
             {
                 success = game.Session.TryShip();
-                Feedback = success ? $"Versendet! +{game.Session.ShipmentPrice} Credits. Container wieder leer." : "Versand blockiert: Container muss voll sein.";
+                Feedback = success ? (game.Session.IsShipping ? "Versand gestartet. Der Kanister kommt leer zurueck." : $"Versendet! +{game.Session.ShipmentPrice} Credits. Container wieder leer.") : "Versand blockiert: Container muss voll sein.";
             }
             else
             {
                 success = game.Session.Transfer() > 0;
-                Feedback = success ? "Regolith im Container. Jetzt am orangefarbenen Elevator versenden." : "Transfer blockiert: Puffer leer oder Container voll.";
+                Feedback = success ? (terminal.IsReturningCanister ? "Umgefuellt. Vollen Versandkanister mit E abschicken." : "Regolith im Container. Jetzt am orangefarbenen Elevator versenden.") : "Transfer blockiert: Kanister leer oder Container voll.";
             }
             return success;
         }

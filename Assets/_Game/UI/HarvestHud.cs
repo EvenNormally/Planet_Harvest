@@ -52,7 +52,8 @@ namespace PlanetHarvest.UI
             if (status == null || Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.1f;
             var session = game.Session;
-            status.text = $"PLANET HARVEST\nRegolith  |  Puffer: {session.Buffer.Amount / 1000000f:0.##}/1 m³  |  Container: {session.Container.Amount / 1000000f:0.##}/1 m³\nCredits: {session.Credits}\nWASD: Laufen   Maus: Blick   Space: Springen   Esc: Maus freigeben\n{interaction.Hint}\n{interaction.Feedback}";
+            string shipment = session.IsShipping ? $"Rueckkehr in {session.ShippingRemaining:0.0} s" : $"Lieferungen: {session.Shipments}";
+            status.text = $"PLANET HARVEST\nRegolith | Dein Kanister: {session.Buffer.Amount / 1000000f:0.##}/{session.Buffer.Capacity / 1000000f:0.##} m³ | Versand: {session.Container.Amount / 1000000f:0.##}/{session.Container.Capacity / 1000000f:0.##} m³\n{shipment} | Credits: {session.Credits}\nWASD: Laufen   Maus: Blick   Space: Springen   Esc: Maus freigeben\n{interaction.Hint}\n{interaction.Feedback}";
         }
 
     }

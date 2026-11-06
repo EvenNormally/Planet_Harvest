@@ -6,6 +6,9 @@ namespace PlanetHarvest.Core
     {
         [SerializeField] private HarvestSettings settings;
         public HarvestSession Session { get; private set; }
-        private void Awake() => Session = new HarvestSession(settings.ShipmentPrice);
+        private void Awake() => Session = new HarvestSession(settings.ShipmentPrice,
+            settings.CellSize * settings.CellSize * settings.CellSize * Mining.HarvestInventory.CubicMetre,
+            settings.ContainerLoads, settings.ShipmentDuration);
+        private void Update() => Session.AdvanceShipment(Time.deltaTime);
     }
 }
