@@ -6,15 +6,16 @@ Die Szene liegt im vorhandenen Szenenordner; es wurden keine Ordner angelegt.
 - WASD: bewegen; Maus: umsehen; Leertaste: springen; Esc: Maus freigeben/einfangen.
 - Auf den Boden schauen und links klicken: einen 2 × 2 × 2 m großen Block abbauen.
   Der persönliche Kanister fasst einen Block (8 m³). Volle Kanister verhindern weiteren Abbau.
-- Zum cyanfarbenen Versandkanister auf der kleinen Plattform gehen, darauf schauen,
-  E drücken: Inhalt umfüllen. Interaktionsreichweite: 5 m.
-- Nach vier Füllungen ist der Versandkanister voll (32 m³). Nochmals E: abschicken.
+- Die äußere Zellschicht liefert Regolith, darunter beginnt Stein.
+  Am Dock den passenden Container anvisieren (Cyan für Regolith, Orange für Stein)
+  und innerhalb von 5 m E drücken. Der Transfer bewegt nur das passende Material.
+- Nach vier Füllungen fasst der gewählte Versandkanister 32 m³. Erneutes Drücken von E schickt ihn ab.
   Er steigt auf und kehrt nach acht Sekunden leer zurück. Während der Reise sind
   Umfüllen und erneuter Versand gesperrt; weiter abbauen ist möglich.
-- Das HUD zeigt Füllstände, Rückkehrzeit, Hinweise und abgeschlossene Lieferungen.
+- Das HUD zeigt beide Materialmengen im Puffer, beide Containerfüllstände, Credits und die Rückkehrzeit.
 
 Konfiguration: `Assets/_Game/ScriptableObjects/TestPlanet200m.asset`.
-Radius 200 m, radiale Beschleunigung 9,81 m/s², ein Material/Rohstoff Regolith.
+Radius 200 m, radiale Beschleunigung 9,81 m/s². Ein voller Regolithcontainer bringt 100 Credits, ein voller Steincontainer 150. Beide Versandpreise sind im Settings-Asset einstellbar. Nur ausgeliefertes Regolith zählt zum Regolithauftrag.
 Das Inventarvolumen wird in ganzzahligen cm³ pro abgebauter Rasterzelle geführt.
 Die natürliche Oberfläche ist über gemeinsame Grenzvertices auf die Kugel gerundet,
 damit die 2-m-Stufen nicht übersprungen werden müssen. Mesh und Collider stimmen überein.
@@ -27,7 +28,7 @@ Die Daten speichern nur entfernte Zellen; das volle Planeteninnere bleibt impliz
 Die Plattform ist nicht abbaubar, damit der Versandplatz erhalten bleibt.
 
 Alles ist ein lokaler Test ohne Speicherung. Stop/Play setzt Terrain und Kanister zurück.
-Die ursprüngliche MVP-Szene und die Build-Szenenliste bleiben erhalten.
+Der Testplanet steht an erster Stelle der Build-Szenenliste, gefolgt von der SampleScene.
 Kein Windows-Player-Build wurde für diese Aufgabe angefordert.
 
 Tests: `TestPlanetRulesTests` prüft Kugeldaten, Volumen, Sperren und wiederholte Lieferungen.

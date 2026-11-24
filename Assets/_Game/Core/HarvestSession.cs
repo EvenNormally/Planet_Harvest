@@ -9,45 +9,69 @@ namespace PlanetHarvest.Core
     {
         public HarvestInventory Buffer { get; }
         public HarvestInventory Container { get; }
+        public HarvestInventory StoneContainer { get; }
         public long MiningVolume { get; }
         public float ShipmentDuration { get; }
         public float ShippingRemaining { get; private set; }
-        public bool IsShipping => ShippingRemaining > 0;
+        public MaterialId ShippingMaterial { get; private set; }
+        public bool IsShipping => ShippingMaterial != MaterialId.None;
         public long Credits { get; private set; }
         public long Shipments { get; private set; }
+        public const long DeliveryGoal = 20 * HarvestInventory.CubicMetre;
+        public long DeliveryProgress { get; private set; }
         public int ShipmentPrice { get; }
+        private readonly int stoneShipmentPrice;
 
         public HarvestSession(int shipmentPrice, long miningVolume = HarvestInventory.CubicMetre,
-            int containerLoads = 1, float shipmentDuration = 0)
+            int containerLoads = 1, float shipmentDuration = 0, int stoneShipmentPrice = 150)
         {
             if (shipmentPrice <= 0) throw new ArgumentOutOfRangeException(nameof(shipmentPrice));
+            if (stoneShipmentPrice <= 0) throw new ArgumentOutOfRangeException(nameof(stoneShipmentPrice));
             if (miningVolume <= 0 || containerLoads < 1 || shipmentDuration < 0 || float.IsNaN(shipmentDuration) || float.IsInfinity(shipmentDuration))
                 throw new ArgumentOutOfRangeException(nameof(miningVolume));
             ShipmentPrice = shipmentPrice;
+            this.stoneShipmentPrice = stoneShipmentPrice;
             MiningVolume = miningVolume;
             Buffer = new HarvestInventory(miningVolume);
-            Container = new HarvestInventory(checked(miningVolume * containerLoads));
+            long capacity = checked(miningVolume * containerLoads);
+            Container = new HarvestInventory(capacity, MaterialId.Regolith);
+            StoneContainer = new HarvestInventory(capacity, MaterialId.Stone);
             ShipmentDuration = shipmentDuration;
         }
 
-        public bool TryMine(VoxelData terrain, Vector3Int cell)
+        public HarvestInventory ContainerFor(MaterialId material) => material switch
         {
-            if (terrain == null || Buffer.Free < MiningVolume || !terrain.IsSolid(cell))
-                return false;
-            // Synchronous transaction: capacity is reserved before removing any terrain.
-            if (!terrain.Remove(cell)) return false;
-            Buffer.TryAdd(MiningVolume);
-            return true;
+            MaterialId.Regolith => Container,
+            MaterialId.Stone => StoneContainer,
+            _ => throw new ArgumentOutOfRangeException(nameof(material))
+        };
+
+        public int PriceFor(MaterialId material) => material switch
+        {
+            MaterialId.Regolith => ShipmentPrice,
+            MaterialId.Stone => stoneShipmentPrice,
+            _ => throw new ArgumentOutOfRangeException(nameof(material))
+        };
+
+        public bool TryMine(VoxelData terrain, Vector3Int cell) => TryMine(terrain, cell, out _);
+
+        public bool TryMine(VoxelData terrain, Vector3Int cell, out MaterialId material)
+        {
+            return Buffer.TryMine(terrain, cell, MiningVolume, out material);
         }
 
-        public long Transfer() => IsShipping ? 0 : Buffer.TransferTo(Container);
+        public long Transfer(MaterialId material = MaterialId.Regolith) =>
+            IsShipping ? 0 : Buffer.TransferTo(ContainerFor(material), material);
 
-        public bool TryShip()
+        public bool TryShip(MaterialId material = MaterialId.Regolith)
         {
-            if (IsShipping || Container.Amount != Container.Capacity || Credits > long.MaxValue - ShipmentPrice)
+            var container = ContainerFor(material);
+            if (IsShipping || container.Free != 0 || Credits > long.MaxValue - PriceFor(material))
                 return false;
-            if (ShipmentDuration > 0) ShippingRemaining = ShipmentDuration;
-            else CompleteShipment();
+            ShippingMaterial = material;
+            container.InTransit = true;
+            ShippingRemaining = ShipmentDuration;
+            if (ShippingRemaining == 0) CompleteShipment();
             return true;
         }
 
@@ -55,13 +79,18 @@ namespace PlanetHarvest.Core
         {
             if (!IsShipping || seconds <= 0 || float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
             ShippingRemaining = Mathf.Max(0, ShippingRemaining - seconds);
-            if (!IsShipping) CompleteShipment();
+            if (ShippingRemaining == 0) CompleteShipment();
         }
 
         private void CompleteShipment()
         {
-            Container.Empty();
-            Credits += ShipmentPrice;
+            var container = ContainerFor(ShippingMaterial);
+            if (ShippingMaterial == MaterialId.Regolith)
+                DeliveryProgress += Math.Min(DeliveryGoal - DeliveryProgress, container.Amount);
+            Credits += PriceFor(ShippingMaterial);
+            container.Empty();
+            container.InTransit = false;
+            ShippingMaterial = MaterialId.None;
             Shipments++;
         }
     }

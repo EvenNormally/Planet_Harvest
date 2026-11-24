@@ -23,7 +23,7 @@ namespace PlanetHarvest.UI
             scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280, 720);
             scaler.matchWidthOrHeight = 0.5f;
-            status = AddText(canvasObject.transform, "Status", new Vector2(0, 1), new Vector2(24, -20), new Vector2(1050, 240), 24);
+            status = AddText(canvasObject.transform, "Status", new Vector2(0, 1), new Vector2(24, -20), new Vector2(1120, 300), 24);
             var crosshair = AddText(canvasObject.transform, "Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(30, 30), 28);
             crosshair.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             crosshair.alignment = TextAlignmentOptions.Center;
@@ -52,8 +52,21 @@ namespace PlanetHarvest.UI
             if (status == null || Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.1f;
             var session = game.Session;
-            string shipment = session.IsShipping ? $"Rueckkehr in {session.ShippingRemaining:0.0} s" : $"Lieferungen: {session.Shipments}";
-            status.text = $"PLANET HARVEST\nRegolith | Dein Kanister: {session.Buffer.Amount / 1000000f:0.##}/{session.Buffer.Capacity / 1000000f:0.##} m³ | Versand: {session.Container.Amount / 1000000f:0.##}/{session.Container.Capacity / 1000000f:0.##} m³\n{shipment} | Credits: {session.Credits}\nWASD: Laufen   Maus: Blick   Space: Springen   Esc: Maus freigeben\n{interaction.Hint}\n{interaction.Feedback}";
+            string order = session.DeliveryProgress < HarvestInventory.CubicMetre
+                ? "Erstlieferung · 1 m³ Regolith versenden"
+                : session.DeliveryProgress < HarvestSession.DeliveryGoal
+                    ? $"Lieferziel · {session.DeliveryProgress / (double)HarvestInventory.CubicMetre:0.##} von 20 m³ Regolith ausgeliefert"
+                    : "Lieferziel erreicht · Freier Versand";
+            string shipment = session.IsShipping
+                ? $"{session.ShippingMaterial.Name()} unterwegs · Rückkehr in {session.ShippingRemaining:0.0} s"
+                : $"Lieferungen: {session.Shipments}";
+            double unit = HarvestInventory.CubicMetre;
+            status.text = $"PLANET HARVEST\n{order}\n" +
+                $"Puffer {session.Buffer.Amount / unit:0.##}/{session.Buffer.Capacity / unit:0.##} m³   |   " +
+                $"Regolith {session.Buffer.AmountOf(MaterialId.Regolith) / unit:0.##} m³   ·   Stein {session.Buffer.AmountOf(MaterialId.Stone) / unit:0.##} m³\n" +
+                $"Versand   <color=#79E5EF>Regolith {session.Container.Amount / unit:0.##}/{session.Container.Capacity / unit:0.##} m³</color>   ·   " +
+                $"<color=#FFB078>Stein {session.StoneContainer.Amount / unit:0.##}/{session.StoneContainer.Capacity / unit:0.##} m³</color>\n" +
+                $"{shipment} | Credits: {session.Credits}\nWASD: Laufen   Maus: Blick   Space: Springen   Esc: Maus freigeben\n{interaction.Hint}\n{interaction.Feedback}";
         }
 
     }

@@ -1,6 +1,8 @@
 # Planet Harvest Implementierungsplan für Codex
 
-Stand: 4. November 2026. Dieser Plan zerlegt das [Spielkonzept](GAME_CONCEPT.md) in kleine, überprüfbare Aufgaben. Das Repository enthält derzeit ein Unity-URP-Template ohne Gameplay. Phase 0 ist eingerichtet; mit Aufgabe 01 beginnt die Spielentwicklung. Die Nummern sind eine sinnvolle Reihenfolge, keine Zusage über Dauer oder fertige Architektur.
+**Hinweis vom 24. November 2026:** Die nummerierten Aufgaben unten beruhen teilweise auf der alten Mond- und Credit-Richtung. Für neue Aufgaben gilt zuerst [CURRENT_GAME_DIRECTION.md](CURRENT_GAME_DIRECTION.md). Insbesondere die Credit-, Verkaufs- und Kaufaufgaben dürfen nicht als aktueller Auftrag übernommen werden.
+
+Stand: 24. November 2026. Dieser Plan zerlegt das [Spielkonzept](GAME_CONCEPT.md) in kleine, überprüfbare Aufgaben. Die Aufgaben 01 bis 03 und Teile der späteren Aufgaben sind im Testplaneten bereits prototypisch vorhanden. Die Nummern beschreiben weiterhin die fachliche Reihenfolge und müssen vor jedem neuen Auftrag mit dem tatsächlichen Projektstand abgeglichen werden; sie sind keine Zusage über Dauer oder fertige Architektur.
 
 ## Arbeitsweise pro Aufgabe
 
@@ -128,7 +130,7 @@ Für die erste Aufgabe kann `NN` direkt durch `01` ersetzt werden. Die Umsetzung
 
 ### 18 Bedienbarer vertikaler Schnitt
 
-**Auftrag:** HUD, Interaktionshinweise, Pausenmenü, Fehlertexte und einfache Platzhalter-Sounds/-Effekte soweit für Verständnis nötig verbinden. Start, erster Auftrag, Upgrade, 20-m³-Lieferung und Save/Load bilden einen durchgehenden Ablauf. Balancing-Startwerte anhand eines dokumentierten Spieltests anpassen.
+**Auftrag:** HUD, Interaktionshinweise, Pausenmenü, Fehlertexte und einfache Platzhalter-Sounds/-Effekte soweit für Verständnis nötig verbinden. Start, erster Auftrag, Upgrade, 20-m³-Lieferung und Save/Load bilden einen durchgehenden Ablauf. Balancing-Startwerte anhand eines dokumentierten Spieltests anpassen. Eine kleine Art-Prototypszene nach der visuellen Richtung in `GAME_CONCEPT.md` erstellen und Materialerkennung auf niedriger Qualitätsstufe prüfen, bevor viele Assets entstehen.
 
 **Fertig wenn:** eine Person ohne Debug-Konsole den gesamten Ablauf spielen kann und erkennt, warum Bohren, Transfer oder Versand blockiert ist. Alle kritischen Tests grün, Windows-Build startet; keine Behauptung über Performance ohne Messung.
 
@@ -168,9 +170,9 @@ Für die erste Aufgabe kann `NN` direkt durch `01` ersetzt werden. Die Umsetzung
 
 ### 24 Optimierung und Windows-Abnahme
 
-**Auftrag:** Auf einer benannten Referenzhardware typische Szenarien (Umrundung, Abbau an Chunkgrenze, Maschinenlauf, Planetenwechsel) messen. Auffällige Kosten bei Chunk-Meshing, Collider, Speicher und Garbage Collection gezielt beheben. UI, Audio und VFX ausarbeiten, ohne Regeln zu ändern.
+**Auftrag:** Auf benannter schwacher, mittlerer und stärkerer Windows-Hardware typische Szenarien (Umrundung, Abbau an Chunkgrenze, Maschinenlauf, Planetenwechsel) messen. Niedrige, mittlere und hohe Qualitätsprofile für Renderauflösung, Schatten, Effekte und Sichtweite anlegen. Auffällige Kosten bei Chunk-Meshing, Collider, Speicher und Garbage Collection gezielt beheben. Stilisierte UI, Audio und VFX ausarbeiten, ohne Regeln zu ändern.
 
-**Fertig wenn:** dokumentierte Framezeit-/RAM-Budgets für den festgelegten Benchmark eingehalten werden, Windows-Build startet und ein längerer Spieltest ohne Mengenfehler oder Saveverlust durchläuft. Budgets erst vor diesem Schritt mit Hardwareangabe festlegen.
+**Fertig wenn:** der Cartoon-Grundlook auf niedriger Stufe lesbar bleibt, dokumentierte Framezeit-/RAM-Budgets für die festgelegten Benchmarks eingehalten werden, Windows-Build startet und ein längerer Spieltest ohne Mengenfehler oder Saveverlust durchläuft. Budgets erst vor diesem Schritt mit Hardwareangabe festlegen.
 
 ## Übergreifende Abnahmeregeln
 

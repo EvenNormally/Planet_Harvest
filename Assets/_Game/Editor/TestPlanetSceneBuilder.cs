@@ -43,12 +43,15 @@ namespace PlanetHarvest.Editor
 
             var ground = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Materials/Regolith.mat");
             var cyan = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Materials/Container.mat");
-            if (ground == null || cyan == null) throw new InvalidOperationException("Existing materials missing.");
+            var orange = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Materials/Elevator.mat");
+            var stone = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Materials/Stone.mat");
+            if (ground == null || cyan == null || orange == null || stone == null) throw new InvalidOperationException("Existing materials missing.");
             var game = new GameObject("Harvest Game").AddComponent<HarvestGame>();
             Set(game, "settings", settings);
             var moon = new GameObject("Planet - Radius 200m - Regolith").AddComponent<VoxelMoon>();
             Set(moon, "settings", settings);
             Set(moon, "material", ground);
+            Set(moon, "stoneMaterial", stone);
 
             // Lightweight editor preview; the real mineable chunk surface replaces it in Play Mode.
             var preview = Primitive("Planet Preview (Play Mode generates terrain)", PrimitiveType.Sphere,
@@ -58,14 +61,8 @@ namespace PlanetHarvest.Editor
             Set(moon, "editorPreview", preview);
 
             Primitive("Dock", PrimitiveType.Cube, new Vector3(2, 200.1f, 2), new Vector3(5, 0.2f, 4), ground);
-            var canister = Primitive("Versandkanister - E: fuellen / abschicken", PrimitiveType.Cylinder,
-                new Vector3(1.5f, 201.1f, 2), new Vector3(1.4f, 0.9f, 1.4f), cyan);
-            var terminal = canister.AddComponent<HarvestTerminal>();
-            var terminalConfig = new SerializedObject(terminal);
-            terminalConfig.FindProperty("returningCanister").boolValue = true;
-            terminalConfig.ApplyModifiedPropertiesWithoutUndo();
-            var flight = canister.AddComponent<ShipmentFlight>();
-            Set(flight, "game", game); Set(flight, "planet", moon.transform);
+            AddCanister(MaterialId.Regolith, 1.5f, cyan, game, moon);
+            AddCanister(MaterialId.Stone, 3.4f, orange, game, moon);
 
             var player = new GameObject("Player");
             player.transform.position = new Vector3(0.5f, 201.3f, -2.5f);
@@ -104,6 +101,19 @@ namespace PlanetHarvest.Editor
             Selection.activeGameObject = moon.gameObject;
             if (SceneView.lastActiveSceneView != null)
                 SceneView.lastActiveSceneView.LookAt(Vector3.zero, Quaternion.Euler(25, 30, 0), 520);
+        }
+
+        private static void AddCanister(MaterialId resource, float x, Material material, HarvestGame game, VoxelMoon moon)
+        {
+            var canister = Primitive("Versandkanister " + resource.Name(), PrimitiveType.Cylinder,
+                new Vector3(x, 201.1f, 2), new Vector3(1.4f, 0.9f, 1.4f), material);
+            var terminal = canister.AddComponent<HarvestTerminal>();
+            var terminalConfig = new SerializedObject(terminal);
+            terminalConfig.FindProperty("returningCanister").boolValue = true;
+            terminalConfig.FindProperty("material").intValue = (int)resource;
+            terminalConfig.ApplyModifiedPropertiesWithoutUndo();
+            var flight = canister.AddComponent<ShipmentFlight>();
+            Set(flight, "game", game); Set(flight, "planet", moon.transform);
         }
 
         private static GameObject Primitive(string name, PrimitiveType type, Vector3 position, Vector3 scale, Material material)

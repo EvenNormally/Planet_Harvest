@@ -1,5 +1,7 @@
 # Entwicklungsroadmap
 
+**Hinweis vom 24. November 2026:** Diese Phasentabelle enthält noch die frühere Mond- und Credit-Planung. Die aktuelle Richtung mit erdähnlichem Startplaneten, Höhlen und Crafting ohne Geld steht in [Docs/CURRENT_GAME_DIRECTION.md](Docs/CURRENT_GAME_DIRECTION.md) und hat bei Widersprüchen Vorrang.
+
 Die operativen Codex-Aufträge und ihre Akzeptanzkriterien stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Das ausführliche Spielkonzept steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Diese Tabelle bleibt die Phasenübersicht.
 
 Jede Phase endet mit Review, nachvollziehbaren Tests und einem spielbaren Prüfstand.
@@ -14,6 +16,6 @@ Zahlen für Performance erst auf gemeinsam festgelegter Referenzhardware messen.
 | 4 – Wirtschaft und Upgrades | Phase 3 | Credits, Bohrer, Förderrate, Kapazität, Tiefe | Kauf nur bei ausreichendem Guthaben; Upgrade wirkt nach Laden weiter; keine doppelten Auszahlungen; Transaktionen getestet |
 | 5 – Automatisierung | Phase 4 | Förderbänder, automatische Bohrer, Sortierer | Anlage arbeitet ohne Spielerinteraktion; voller Ausgang erzeugt Rückstau; Pause/Laden dupliziert keine Rohstoffe |
 | 6 – Zweiter Planet | Phase 5 | Erdähnlicher Planet, Biome, Materialverteilung, Reise | Planeten reproduzierbar aus Seeds; Reise erhält beide Weltzustände; Gravitation und Saveversionen korrekt |
-| 7 – Optimierung und Visuals | Phase 6 | Profiling, Streaming/LOD, Sounds, VFX, UI | Vereinbarte Framezeit-/RAM-Budgets in festem Benchmark eingehalten; Windows-Build und Langzeittest bestanden; keine neuen Fehler |
+| 7 – Optimierung und Visuals | Phase 6 | Stilisierter Cartoon-Look, Qualitätsprofile, Profiling, Streaming/LOD, Sounds, VFX, UI | Grundlook auf niedriger Qualitätsstufe lesbar; vereinbarte Framezeit-/RAM-Budgets im Windows-Benchmark eingehalten; Build und Langzeittest bestanden |
 
 Phase 0 umfasst kein fertiges Mining, keinen Controller und keine Produktionsanlagen.

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using NUnit.Framework;
 using PlanetHarvest.Core;
 using PlanetHarvest.Logistics;
@@ -14,9 +15,9 @@ namespace PlanetHarvest.Tests
     public class HarvestLoopTests
     {
         [UnityTest]
-        public IEnumerator MineTransferShipAndRepeatThroughSceneComponents()
+        public IEnumerator ExcavatedFloorKeepsTextureAndYieldsItsOwnMaterial()
         {
-            yield return SceneManager.LoadSceneAsync("Assets/_Game/Scenes/PlanetHarvest.unity", LoadSceneMode.Single);
+            yield return SceneManager.LoadSceneAsync("Assets/_Game/Scenes/PlanetHarvest_Test200m.unity", LoadSceneMode.Single);
             yield return null;
             var moon = Object.FindFirstObjectByType<VoxelMoon>();
             var game = Object.FindFirstObjectByType<HarvestGame>();
@@ -27,35 +28,46 @@ namespace PlanetHarvest.Tests
                 foreach (var component in root.GetComponentsInChildren<Component>(true))
                     Assert.That(component, Is.Not.Null, "Missing scene component");
             yield return new WaitForSeconds(0.5f);
-            Assert.That(player.transform.position.magnitude, Is.InRange(11f, 15f), "Player must remain on moon");
-            var ray = new Ray(new Vector3(-0.5f, 16, -0.5f), Vector3.down);
+            Assert.That(player.transform.position.magnitude, Is.InRange(200.5f, 202f), "Player must remain on moon");
+            var ray = new Ray(new Vector3(-1, 206, -1), Vector3.down);
             Assert.That(Physics.Raycast(ray, out var hit, 10), Is.True);
             float surface = hit.point.y;
             Vector3Int cell = moon.CellAt(hit);
             int before = moon.Data.SolidCount;
             Assert.That(interaction.Mine(hit), Is.True);
             Assert.That(moon.Data.SolidCount, Is.EqualTo(before - 1));
-            Assert.That(game.Session.Buffer.Amount, Is.EqualTo(1000000));
+            Assert.That(game.Session.Buffer.AmountOf(MaterialId.Regolith), Is.EqualTo(8000000));
             Physics.SyncTransforms();
             Assert.That(Physics.Raycast(ray, out var below, 10), Is.True);
-            Assert.That(below.point.y, Is.EqualTo(surface - 1).Within(0.01f), "Collider must expose the real hole");
+            var floorRenderer = below.collider.GetComponent<MeshRenderer>();
+            Assert.That(floorRenderer.sharedMaterials[1].GetTexture("_BaseMap"), Is.Not.Null,
+                "The excavated stone floor must retain its texture.");
+            var floorMesh = below.collider.GetComponent<MeshFilter>().sharedMesh;
+            Assert.That(floorMesh.uv.Length, Is.EqualTo(floorMesh.vertexCount));
+            Assert.That(below.triangleIndex * 3, Is.GreaterThanOrEqualTo((int)floorMesh.GetIndexCount(0)),
+                "Exposed stone floor must use the stone submesh");
+            var uv = floorMesh.uv;
+            var indices = floorMesh.triangles;
+            int start = below.triangleIndex * 3;
+            Vector2 edgeA = uv[indices[start + 1]] - uv[indices[start]];
+            Vector2 edgeB = uv[indices[start + 2]] - uv[indices[start]];
+            Assert.That(Mathf.Abs(edgeA.x * edgeB.y - edgeA.y * edgeB.x), Is.GreaterThan(0.001f),
+                "Newly exposed triangles need a nonzero area on the texture.");
+            Assert.That(below.point.y, Is.EqualTo(surface - 2).Within(0.05f), "Collider must expose the real hole");
             Assert.That(interaction.Mine(below), Is.False, "Full buffer must stop terrain removal");
-            HarvestTerminal container = null, elevator = null;
-            foreach (var terminal in Object.FindObjectsByType<HarvestTerminal>(FindObjectsSortMode.None))
-                if (terminal.IsElevator) elevator = terminal; else container = terminal;
-            Assert.That(interaction.UseTerminal(container), Is.True);
+            var terminals = Object.FindObjectsByType<HarvestTerminal>(FindObjectsSortMode.None);
+            var regolith = terminals.Single(t => t.Material == MaterialId.Regolith);
+            var stone = terminals.Single(t => t.Material == MaterialId.Stone);
+            Assert.That(interaction.UseTerminal(regolith), Is.True);
             Assert.That(game.Session.Buffer.Amount, Is.Zero);
-            Assert.That(game.Session.Container.Amount, Is.EqualTo(1000000));
+            Assert.That(game.Session.Container.Amount, Is.EqualTo(8000000));
             Assert.That(moon.TryMine(game.Session, cell), Is.False, "Removed cell is air");
-            Assert.That(interaction.UseTerminal(elevator), Is.True);
-            Assert.That(interaction.UseTerminal(elevator), Is.False);
-            Assert.That(game.Session.Credits, Is.EqualTo(game.Session.ShipmentPrice));
             Assert.That(interaction.Mine(below), Is.True);
-            Assert.That(interaction.UseTerminal(container), Is.True);
-            Assert.That(interaction.UseTerminal(elevator), Is.True);
-            Assert.That(game.Session.Credits, Is.EqualTo(2 * game.Session.ShipmentPrice));
-            Assert.That(game.Session.Container.Amount, Is.Zero);
-            // Cell (-1,11,-1) borders two chunks: the neighbouring faces must be rebuilt too.
+            Assert.That(game.Session.Buffer.AmountOf(MaterialId.Stone), Is.EqualTo(8000000));
+            Assert.That(interaction.UseTerminal(regolith), Is.False);
+            Assert.That(interaction.UseTerminal(stone), Is.True);
+            Assert.That(game.Session.Container.Amount, Is.EqualTo(8000000));
+            Assert.That(game.Session.StoneContainer.Amount, Is.EqualTo(8000000));
             Assert.That(moon.Data.IsSolid(cell), Is.False);
         }
     }

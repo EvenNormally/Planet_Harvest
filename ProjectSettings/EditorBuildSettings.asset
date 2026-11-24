@@ -6,8 +6,11 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/_Game/Scenes/PlanetHarvest.unity
-    guid: 6caa1b77ca731f945ad4e0f2dc138a5c
+    path: Assets/_Game/Scenes/PlanetHarvest_Earth.unity
+    guid: 74194b45eac37da419bcb90f3c01406a
+  - enabled: 1
+    path: Assets/_Game/Scenes/PlanetHarvest_Test200m.unity
+    guid: 4e03f7e2df4a0d347891aad8a3ac6e0f
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05

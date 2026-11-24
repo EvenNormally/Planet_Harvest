@@ -67,9 +67,11 @@ namespace PlanetHarvest.Tests
                 session.Buffer.TryAdd(load);
                 Assert.That(session.Transfer(), Is.Zero);
                 session.AdvanceShipment(7);
+                Assert.That(session.DeliveryProgress, Is.EqualTo(trip == 0 ? 0 : HarvestSession.DeliveryGoal));
                 Assert.That(session.IsShipping, Is.True);
                 Assert.That(session.Container.Amount, Is.EqualTo(4 * load));
                 session.AdvanceShipment(1);
+                Assert.That(session.DeliveryProgress, Is.EqualTo(HarvestSession.DeliveryGoal));
                 Assert.That(session.IsShipping, Is.False);
                 Assert.That(session.Container.Amount, Is.Zero);
                 Assert.That(session.Credits, Is.EqualTo((trip + 1) * 100));

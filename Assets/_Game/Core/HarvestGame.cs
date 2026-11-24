@@ -8,7 +8,7 @@ namespace PlanetHarvest.Core
         public HarvestSession Session { get; private set; }
         private void Awake() => Session = new HarvestSession(settings.ShipmentPrice,
             settings.CellSize * settings.CellSize * settings.CellSize * Mining.HarvestInventory.CubicMetre,
-            settings.ContainerLoads, settings.ShipmentDuration);
+            settings.ContainerLoads, settings.ShipmentDuration, settings.StoneShipmentPrice);
         private void Update() => Session.AdvanceShipment(Time.deltaTime);
     }
 }

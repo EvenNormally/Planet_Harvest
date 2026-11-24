@@ -3,7 +3,7 @@
 3D-First-Person-Mining-, Automatisierungs- und Simulationsspiel für Windows x64.
 Zwei Entwickler bauen gemeinsam kugelförmige Planeten, zerstörbares Terrain und eine Rohstoffwirtschaft.
 
-**Stand:** Phase 0. Vorhandenes URP-Template mit SampleScene; Gameplay ist geplant, noch nicht implementiert.
+**Stand:** Ein Mond-Testplanet mit radialer Bewegung, abbaubarem Chunk-Terrain und Elevator existiert. Die aktuelle Spielrichtung ist ein erdähnlicher Startplanet mit Höhlen und Crafting statt Geldsystem. Details: [Docs/CURRENT_GAME_DIRECTION.md](Docs/CURRENT_GAME_DIRECTION.md). Der lokale Arbeitsbaum kann zusätzliche, noch nicht abgeschlossene Änderungen enthalten.
 
 ## Voraussetzungen
 
@@ -62,6 +62,6 @@ unity test . --mode PlayMode --output Logs/playmode-results.xml
 Vor Batch-Tests den interaktiven Editor regulär schließen. CI prüft die Repositorystruktur;
 Unity-Lizenz und Editor-Tests werden lokal geprüft. Kein Cloud-Unity-Test wird vorgetäuscht.
 
-Weitere Dokumente: [Architektur](ARCHITECTURE.md), [Spielidee](GAME_DESIGN.md),
+Weitere Dokumente: [Aktuelle Spielrichtung](Docs/CURRENT_GAME_DIRECTION.md), [Architektur](ARCHITECTURE.md), [Spielidee](GAME_DESIGN.md),
 [Spielkonzept](Docs/GAME_CONCEPT.md), [Codex-Implementierungsplan](Docs/IMPLEMENTATION_PLAN.md),
 [Roadmap](DEVELOPMENT_ROADMAP.md), [Prüfbericht](Docs/SETUP_REPORT.md).

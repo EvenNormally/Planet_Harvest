@@ -1,10 +1,13 @@
 # Planet Harvest – Spielidee
 
+**Aktuelle Richtung vom 24. November 2026:** Zuerst ein erdähnlicher Planet mit Hügeln, Höhlen sowie Erde, Stein und seltenem Eisenerz in der Tiefe. Fortschritt entsteht später durch Crafting aus Rohstoffen, ohne Geldsystem. Der bisherige Mond und Elevator sind technische Prüfstände. Details: [Docs/CURRENT_GAME_DIRECTION.md](Docs/CURRENT_GAME_DIRECTION.md). Die ältere Skizze darunter dokumentiert den vorherigen Plan.
+
 Die ausführliche Fassung mit Spielregeln, erstem spielbaren Umfang und offenen Entscheidungen steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Einzelne Codex-Aufträge stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Dieses Dokument bleibt die kurze Übersicht.
 
 First-Person-Mining und Automatisierung auf kugelförmigen Planeten für Windows PC.
 Der Spieler beginnt auf einem kleinen Mond mit einfachem Bohrer und kleinen Containern.
 Ein erdähnlicher Planet mit eigenen Biomen und Materialien folgt später.
+Der angestrebte Look ist ein klar lesbarer 3D-Cartoonstil mit Qualitätsstufen für unterschiedlich leistungsfähige Windows-PCs.
 
 ## Kernschleife
 

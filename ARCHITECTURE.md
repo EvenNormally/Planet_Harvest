@@ -2,8 +2,16 @@
 
 ## Ist-Zustand
 
-URP-Template, SampleScene und InputSystem_Actions sind vorhanden. Noch keine
-Gameplay-Implementierung, keine Speicherung, kein Netzwerkspiel. Nachfolgend Zielarchitektur.
+Die Gameplay-Szenen verwenden das vorhandene Input System und URP. Der kleine Mond
+versendet volle Container sofort. Auf dem 200-m-Testplaneten schließt erst die
+Rückkehr des Kanisters die Lieferung ab. Beim Abschluss zählt das gelieferte
+Volumen für die Sitzungsziele von 1 und insgesamt 20 m³. Freie Lieferungen
+bleiben danach möglich.
+
+Die Regolith-Textur wiederholt sich auf ebenen Terrainflächen alle zwei Meter.
+Der Chunk-Mesher projiziert planetlokale Meter auf die beiden Achsen der jeweiligen
+Zellfläche, auch an frisch gebohrten Wänden. Container und Elevator nutzen die UVs
+ihrer Modelle. Die folgenden Abschnitte beschreiben die Zielarchitektur.
 
 ## Systemgrenzen
 

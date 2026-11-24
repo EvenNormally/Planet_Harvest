@@ -1,6 +1,10 @@
 # Planet Harvest Spielkonzept
 
-Stand: 4. November 2026. Dieses Konzept entwickelt die bereitgestellte Ideenskizze zu einer programmierbaren Spielschleife. Werte mit dem Zusatz **Startwert** sind Vorschläge für Prototypen und werden nach Spieltests angepasst. Die Umsetzungsschritte stehen in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+**Hinweis vom 24. November 2026:** Die aktuelle Entscheidung für einen erdähnlichen Startplaneten, drei Materialien, Höhlen und Crafting ohne Geld steht in [CURRENT_GAME_DIRECTION.md](CURRENT_GAME_DIRECTION.md). Widersprechende Mond-, Credit- und Verkaufsabschnitte weiter unten sind historische Planung und keine neuen Implementierungsaufträge.
+
+Stand: 24. November 2026. Dieses Konzept entwickelt die bereitgestellte Ideenskizze zu einer programmierbaren Spielschleife. Werte mit dem Zusatz **Startwert** sind Vorschläge für Prototypen und werden nach Spieltests angepasst. Die Umsetzungsschritte stehen in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+**Aktueller Prüfstand (November 2026):** Im Repository existiert ein 200-m-Testplanet mit radialer Bewegung, abbaubaren Chunk-Meshes, Kanister, zeitgesteuertem Elevator und Credits. Die Testkonfiguration verwendet 2-m-Zellen und damit 8 m³ pro abgebauter Zelle. Regolith und Stein werden gerade im lokalen Arbeitsstand getrennt. Speicherung, Upgrades, Automatisierung und zweiter Planet sind noch Zielbild. Die unten genannte 1-m³-Startlieferung beschreibt die geplante Spielprogression; sie passt noch nicht zur aktuellen Testzellgröße und muss im Balancing oder durch feineren Abbau geklärt werden.
 
 ## 1 Spielidee und erste Version
 
@@ -70,13 +74,23 @@ Ein stationärer Bohrer gewinnt später Material aus realem Terrain, ein Förder
 
 Die erste Automationsdemo besteht aus einem Bohrer, einem kurzen Förderweg, einem Sortierer und zwei Containern. Sie bewegt ohne Spielerinteraktion Material und hält bei vollem Ziel an. Erst danach folgen längere Netze und Durchsatz-Upgrades.
 
-## 8 Save, Szenen und technische Grenzen
+## 8 Artstil und Zielhardware
+
+**Visuelle Richtung:** ein freundlicher, klar lesbarer 3D-Cartoonstil mit einfachen, kräftigen Silhouetten, leicht gerundeten Formen und einer begrenzten Farbpalette. Der Mond bleibt trotz stilisierter Oberfläche als Kugel erkennbar. Regolith, Stein und spätere Erze unterscheiden sich durch Farbton, Muster und Beschriftung; wertvolle Vorkommen dürfen Akzentfarben tragen, ohne die ganze Welt leuchten zu lassen. Maschinen, Container und Elevator haben größere Formen und deutliche Funktionsfarben. Der erdähnliche Planet nutzt dieselbe Formsprache, aber eigene Biompaletten. Die UI verwendet passende einfache Icons und gut lesbare Schrift.
+
+Der Stil soll auch beim Bohren erhalten bleiben: frische Schnittflächen und Chunk-Grenzen müssen zusammenpassen. Der bestehende blockige Abbau kann als bewusst gestaltete Form funktionieren; eine spätere glattere Oberfläche ist nur sinnvoll, wenn sie im Spiel und im Performance-Test einen klaren Gewinn bringt. Kleine Texturdetails und sanfte Farbverläufe geben Tiefe, während Silhouette, Licht und Farbkontrast die Hauptarbeit leisten. Aufwendige Vollbild-Konturen, viele transparente Effekte und dichte Echtzeitbeleuchtung sind kein Grundbestandteil des Looks.
+
+**Technisches Ziel:** zuerst ein gut aussehender und flüssiger Windows-x64-Build auf einer breiten Spanne von PCs. „Überall“ kann erst nach Tests auf benannter schwacher, mittlerer und stärkerer Hardware konkret zugesagt werden. Geplant sind Qualitätsstufen mit unterschiedlicher Renderauflösung, Schattenreichweite, Effektqualität und Sichtweite. Der Grundlook muss auf der niedrigen Stufe lesbar bleiben; höhere Stufen verbessern vor allem Schatten, Details und dezente Effekte. Die vorhandene URP bleibt die Renderbasis. Wiederverwendete Materialien, wenige Shader-Varianten, begrenzte sichtbare Chunks und gebündelte Mesh-/Collider-Aktualisierungen sind wichtiger als eine bloß niedrige Polygonzahl. Die Einstellungen werden anhand von Build-Profiling gewählt, nicht allein nach Editor-FPS.
+
+**Art-Prototyp vor großer Assetproduktion:** eine kleine Szene mit Mondoberfläche, Regolith, Stein, Spielerblick, Container und Elevator in zwei Lichtstimmungen. Ein Screenshot des niedrigen und des hohen Qualitätsprofils soll Materialerkennung, Lesbarkeit und Formensprache zeigen. Erst nach diesem Vergleich werden größere Mengen Modelle, Texturen und Effekte erstellt. Weitere Plattformen als Windows PC erfordern eine separate Steuerungs- und Leistungskonzeption.
+
+## 9 Save, Szenen und technische Grenzen
 
 Ein Save enthält Schema-Version, Planet-ID und Seed mit Generatorversion, Terrainänderungen, Spielerposition und Blickrichtung, Puffer, Container, versendete IDs, Credits, Upgrades und Freischaltungen. Material wird über stabile IDs gespeichert, nicht über Szeneobjekt-Referenzen. Schreiben erfolgt atomisch mit Sicherung. Unbekannte Versionen geben einen klaren Fehler oder nutzen eine getestete Migration. Eine veränderte Generatorversion darf alte Terrain-Deltas nicht still auf eine andere Grundwelt anwenden.
 
 Reine Regeln für Volumen, Transfer, Buchung und Upgrade-Kosten sollen ohne Unity-Szene testbar sein. Die bestehende SampleScene und Template-Assets bleiben Referenz; neue Gameplay-Szenen und Prefabs liegen unter `Assets/_Game/`. Systemgrenzen und technische Regeln stehen in [ARCHITECTURE.md](../ARCHITECTURE.md).
 
-## 9 Noch zu entscheiden
+## 10 Noch zu entscheiden
 
 | Frage | Vorläufige Richtung | Entscheidung nach |
 | --- | --- | --- |
@@ -86,5 +100,6 @@ Reine Regeln für Volumen, Transfer, Buchung und Upgrade-Kosten sollen ohne Unit
 | Preise, Kosten und Vorkommen | feste Datenwerte | 1-m³- und 20-m³-Durchlauf |
 | Chunk- und Collider-Budget | gemessene Grenzen | Test auf benannter Hardware |
 | Zweiter Planet und Reiseablauf | eigener Abschnitt | stabiler Mond und Saveversion |
+| Konkrete Qualitätsprofile und Hardwaregrenzen | niedriger Grundlook, optionale Details | Art-Prototyp und Messung im Windows-Build |
 
 Diese Entscheidungen werden im jeweiligen Implementierungsschritt mit Messung oder Spielbeobachtung festgehalten.

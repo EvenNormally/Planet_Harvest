@@ -21,3 +21,4 @@ MonoBehaviour:
   moveSpeed: 6
   jumpSpeed: 7
   shipmentPrice: 100
+  stoneShipmentPrice: 150

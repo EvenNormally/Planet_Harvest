@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using PlanetHarvest.Mining;
+using PlanetHarvest.Planets;
 using UnityEngine;
 
 namespace PlanetHarvest.Voxel
@@ -10,6 +12,7 @@ namespace PlanetHarvest.Voxel
         // The sphere is implicit. Store only mined cells, never its filled interior.
         private readonly HashSet<Vector3Int> removed = new HashSet<Vector3Int>();
         private readonly int initialCount;
+        private readonly EarthVoxelGrid earth;
         public int SolidCount => initialCount - removed.Count;
         public int Radius { get; }
 
@@ -25,14 +28,38 @@ namespace PlanetHarvest.Voxel
             }
         }
 
-        public bool IsOriginalSolid(Vector3Int cell) =>
-            ((Vector3)cell + Vector3.one * 0.5f).sqrMagnitude <= Radius * Radius;
+        public VoxelData(EarthPlanetField field)
+        {
+            earth = new EarthVoxelGrid(field);
+            Radius = field.Extent;
+            initialCount = earth.SolidCount;
+        }
+
+        public bool IsOriginalSolid(Vector3Int cell) => earth != null
+            ? earth.MaterialAt(cell) != MaterialId.None
+            : ((Vector3)cell + Vector3.one * 0.5f).sqrMagnitude <= Radius * Radius;
         public bool IsSolid(Vector3Int cell) => IsOriginalSolid(cell) && !removed.Contains(cell);
-        internal bool Remove(Vector3Int cell) => IsSolid(cell) && removed.Add(cell);
+        public MaterialId MaterialAt(Vector3Int cell)
+        {
+            if (!IsSolid(cell)) return MaterialId.None;
+            if (earth != null) return earth.MaterialAt(cell);
+            float stoneRadius = Radius - 1;
+            return ((Vector3)cell + Vector3.one * 0.5f).sqrMagnitude <= stoneRadius * stoneRadius
+                ? MaterialId.Stone : MaterialId.Regolith;
+        }
+
+        internal bool TryRemove(Vector3Int cell, out MaterialId material)
+        {
+            material = MaterialAt(cell);
+            if (material == MaterialId.None) return false;
+            removed.Add(cell);
+            return true;
+        }
 
         public Vector3 RoundSurfaceVertex(Vector3 vertex)
         {
             Vector3Int corner = Vector3Int.RoundToInt(vertex);
+            if (earth != null) return earth.SurfaceVertex(corner);
             bool solid = false, air = false;
             for (int x = -1; x <= 0; x++)
             for (int y = -1; y <= 0; y++)
@@ -48,6 +75,7 @@ namespace PlanetHarvest.Voxel
 
         public bool IsSurfaceChunk(Vector3Int key)
         {
+            if (earth != null) return earth.HasBoundary(key);
             Vector3 min = key * ChunkSize;
             Vector3 max = min + Vector3.one * ChunkSize;
             var bounds = new Bounds((min + max) * 0.5f, Vector3.one * (ChunkSize + 2));

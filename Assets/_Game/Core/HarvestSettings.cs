@@ -13,7 +13,8 @@ namespace PlanetHarvest.Core
         [SerializeField, Min(1)] private float gravity = 12f;
         [SerializeField, Min(1)] private float moveSpeed = 4f;
         [SerializeField, Min(1)] private float jumpSpeed = 6f;
-        [SerializeField, Min(1)] private int shipmentPrice = 100;
+        [SerializeField, Min(1), InspectorName("Regolith Shipment Price")] private int shipmentPrice = 100;
+        [SerializeField, Min(1)] private int stoneShipmentPrice = 150;
 
         public int MoonRadius => Mathf.Clamp(moonRadius, 8, 200);
         public int CellSize => Mathf.Clamp(cellSize, 1, 2);
@@ -23,6 +24,7 @@ namespace PlanetHarvest.Core
         public float Gravity => Mathf.Max(1, gravity);
         public float MoveSpeed => Mathf.Max(1, moveSpeed);
         public float JumpSpeed => Mathf.Max(1, jumpSpeed);
+        public int StoneShipmentPrice => Mathf.Max(1, stoneShipmentPrice);
         public int ShipmentPrice => Mathf.Max(1, shipmentPrice);
     }
 }

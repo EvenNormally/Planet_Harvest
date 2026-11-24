@@ -105,8 +105,10 @@ namespace PlanetHarvest.Player
 
             Vector3 groundNormal = up;
             Vector3 footSphere = body.position - up * (capsule.height * 0.5f - capsule.radius);
-            int count = Physics.SphereCastNonAlloc(footSphere + up * 0.05f, capsule.radius - 0.03f,
-                -up, groundHits, 0.2f, ~0, QueryTriggerInteraction.Ignore);
+            const float probeLift = 0.35f;
+            const float probeInset = 0.03f;
+            int count = Physics.SphereCastNonAlloc(footSphere + up * probeLift, capsule.radius - probeInset,
+                -up, groundHits, probeLift + 0.15f, ~0, QueryTriggerInteraction.Ignore);
             float nearest = float.MaxValue;
             IsGrounded = false;
             for (int i = 0; i < count; i++)
@@ -122,8 +124,16 @@ namespace PlanetHarvest.Player
             if (IsGrounded && tangent.sqrMagnitude > 0)
                 tangent = Vector3.ProjectOnPlane(tangent, groundNormal).normalized * movement.magnitude;
             Vector3 target = tangent * settings.MoveSpeed;
-            Vector3 current = Vector3.ProjectOnPlane(body.linearVelocity, up);
+            Vector3 current = Vector3.ProjectOnPlane(body.linearVelocity, IsGrounded ? groundNormal : up);
             body.AddForce(Vector3.ClampMagnitude(target - current, 50 * Time.fixedDeltaTime), ForceMode.VelocityChange);
+            // Keep the capsule on the actual mesh at contacts between chunk colliders.
+            // A mined-away floor produces no hit, so gravity takes over immediately.
+            if (IsGrounded && !jumpQueued && nearest < probeLift + probeInset)
+            {
+                float correction = Mathf.Min((probeLift + probeInset - nearest) / Time.fixedDeltaTime, 1f);
+                float inwardSpeed = Vector3.Dot(body.linearVelocity, groundNormal);
+                body.AddForce(groundNormal * Mathf.Max(0, correction - inwardSpeed), ForceMode.VelocityChange);
+            }
             if (jumpQueued && IsGrounded)
             {
                 body.AddForce(up * (settings.JumpSpeed - Vector3.Dot(body.linearVelocity, up)), ForceMode.VelocityChange);
