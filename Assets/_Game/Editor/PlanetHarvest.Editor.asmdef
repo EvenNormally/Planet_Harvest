@@ -1,5 +1,5 @@
 {
   "name": "PlanetHarvest.Editor",
-  "references": ["PlanetHarvest.Runtime", "Unity.InputSystem"],
+  "references": ["PlanetHarvest.Runtime", "Unity.InputSystem", "Unity.TextMeshPro", "Unity.ugui"],
   "includePlatforms": ["Editor"]
 }

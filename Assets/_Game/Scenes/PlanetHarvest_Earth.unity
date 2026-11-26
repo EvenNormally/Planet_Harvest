@@ -344,6 +344,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: PlanetHarvest.Runtime::PlanetHarvest.Mining.EarthMining
   planet: {fileID: 1190971702}
   view: {fileID: 193343993}
+  equipmentPrefab: {fileID: 4020700652609412681, guid: 371fb260f45c04540949bd5a4b803b6c, type: 3}
+  elevatorPrefab: {fileID: 8515161168981008766, guid: c44ffded5f0a8bf45952b08928c900bb, type: 3}
 --- !u!114 &596679042
 MonoBehaviour:
   m_ObjectHideFlags: 0

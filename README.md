@@ -3,7 +3,9 @@
 3D-First-Person-Mining-, Automatisierungs- und Simulationsspiel für Windows x64.
 Zwei Entwickler bauen gemeinsam kugelförmige Planeten, zerstörbares Terrain und eine Rohstoffwirtschaft.
 
-**Stand:** Ein Mond-Testplanet mit radialer Bewegung, abbaubarem Chunk-Terrain und Elevator existiert. Die aktuelle Spielrichtung ist ein erdähnlicher Startplanet mit Höhlen und Crafting statt Geldsystem. Details: [Docs/CURRENT_GAME_DIRECTION.md](Docs/CURRENT_GAME_DIRECTION.md). Der lokale Arbeitsbaum kann zusätzliche, noch nicht abgeschlossene Änderungen enthalten.
+**Spielstart:** `Assets/_Game/Scenes/PlanetHarvest_Earth.unity` öffnen und Play drücken. Mit WASD zur Höhle oder zum Space Elevator rechts vor dem Spawn laufen. Die Feldhacke auf Platz 1 baut mit der linken Maustaste je 1 m³ ab. Mit 1–4 oder dem Mausrad lassen sich Werkzeug und Rohstoffproben auswählen.
+
+Für Level 1 werden 20 m³ Erde geliefert, für Level 2 insgesamt 12 m³ Stein. Am beschrifteten Container mit E umladen. Volle Container fahren automatisch in den Orbit und kehren leer zurück. Bereits gelieferter Stein zählt für Level 2. Eisenerz bleibt im Rucksack. Fortschritt und Inventar gelten für die laufende Spielsitzung. Der Mond-Testplanet bleibt separat spielbar.
 
 ## Voraussetzungen
 

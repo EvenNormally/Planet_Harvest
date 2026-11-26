@@ -87,6 +87,7 @@ namespace PlanetHarvest.Editor
             var mining = player.GetComponent<EarthMining>() ?? player.AddComponent<EarthMining>();
             Set(mining, "planet", planet);
             Set(mining, "view", camera);
+            EarthEquipmentBuilder.Bind(mining);
             if (player.GetComponent<EarthHud>() == null) player.AddComponent<EarthHud>();
         }
 
