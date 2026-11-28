@@ -24,15 +24,19 @@ namespace PlanetHarvest.Logistics
         private TextMeshPro sign;
         private Material finish;
         private MaterialPropertyBlock tint;
-        private float bob;
+        private float bob, splash;
+        private ModelLibrary models;
+        private Mining.MiningDebris drops;
 
         public WaterSettings Settings { get; private set; }
         public WaterPump Pump { get; private set; }
         public bool Replica { get; set; }
         public bool Unlocked => wallet.CompletedContracts >= Settings.UnlockAfterContracts;
 
-        public void Initialize(VoxelPlanet planet, EarthFreight wallet, BeamNetwork beams, WaterSettings settings, Transform lakeSurface)
+        public void Initialize(VoxelPlanet planet, EarthFreight wallet, BeamNetwork beams, WaterSettings settings, Transform lakeSurface,
+            ModelLibrary models = null)
         {
+            this.models = models;
             this.wallet = wallet;
             this.beams = beams;
             Settings = settings ? settings : throw new MissingReferenceException("Wassereinstellungen fehlen.");
@@ -43,6 +47,9 @@ namespace PlanetHarvest.Logistics
             tint = new MaterialPropertyBlock();
             Place(planet);
             Assemble();
+            drops = new GameObject("Spritzwasser").AddComponent<Mining.MiningDebris>();
+            drops.transform.SetParent(transform, false);
+            drops.Prepare(Resources.GetBuiltinResource<Mesh>("Sphere.fbx"));
         }
 
         private void Place(VoxelPlanet planet)
@@ -72,6 +79,18 @@ namespace PlanetHarvest.Logistics
             sign.color = new Color(.88f, .97f, .83f);
             built = new GameObject("Pumpe").transform;
             built.SetParent(transform, false);
+            var model = models ? models.Spawn(GameModel.Pump, built, finish) : null;
+            if (model)
+            {
+                FieldProps.Part(built, "Glastank", PrimitiveType.Sphere, new Vector3(-.95f, 1.1f, 0), Vector3.one * 1.1f, new Color(.75f, .9f, 1f, .35f), finish);
+                waterColumn = FieldProps.Part(built, "Tankwasser", PrimitiveType.Sphere, new Vector3(-.95f, .7f, 0), Vector3.one * .1f, Water, finish).transform;
+                pumpHead = ModelLibrary.Find(model, "Pumpenkopf");
+                lamp = ModelLibrary.Find(model, "Statusleuchte").GetComponent<Renderer>();
+                var hitBox = gameObject.AddComponent<BoxCollider>();
+                hitBox.center = Vector3.up * 1;
+                hitBox.size = new Vector3(2.2f, 2, 2.2f);
+                return;
+            }
             FieldProps.Part(built, "Gehäuse", PrimitiveType.Cylinder, Vector3.up * .7f, new Vector3(.9f, .55f, .9f), new Color(.98f, .6f, .16f), finish);
             pumpHead = FieldProps.Part(built, "Pumpenkopf", PrimitiveType.Cube, Vector3.up * 1.4f, new Vector3(.5f, .3f, .5f), Mint, finish).transform;
             var hose = FieldProps.Part(built, "Saugrüssel", PrimitiveType.Cylinder, new Vector3(0, .5f, 1.6f), new Vector3(.18f, 1.2f, .18f), new Color(.62f, .38f, .95f), finish);
@@ -124,6 +143,13 @@ namespace PlanetHarvest.Logistics
             {
                 bob += Time.deltaTime * 8;
                 pumpHead.localPosition = Vector3.up * (1.4f + Mathf.Abs(Mathf.Sin(bob)) * .15f);
+                splash -= Time.deltaTime;
+                if (splash <= 0)
+                {
+                    splash = .45f;
+                    Vector3 nozzle = transform.TransformPoint(new Vector3(0, .1f, 2.3f));
+                    drops.Burst(nozzle, transform.up, transform.up, MaterialId.Water);
+                }
             }
             tint.SetColor(TintId, Pump.State switch
             {

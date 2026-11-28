@@ -34,6 +34,7 @@ namespace PlanetHarvest.Mining
             {
                 MaterialId.Soil => new Color(.67f,.45f,.26f), MaterialId.IronOre => new Color(.82f,.36f,.18f),
                 MaterialId.CopperOre => new Color(.97f,.62f,.32f), MaterialId.Quartz => new Color(.84f,.76f,.98f),
+                MaterialId.Water => new Color(.45f,.7f,1f), MaterialId.Biomass => new Color(.45f,.78f,.35f),
                 _ => new Color(.6f,.65f,.67f)
             };
             var force = dust.forceOverLifetime;

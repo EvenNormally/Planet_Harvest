@@ -1035,6 +1035,7 @@ MonoBehaviour:
   contracts: {fileID: 11400000, guid: fce602cfede1423385e2ac019cd0f8fe, type: 2}
   beamSettings: {fileID: 11400000, guid: 356d123c852d401b819c2012e6ed48e7, type: 2}
   robotSettings: {fileID: 11400000, guid: 76f34df07aa14585a8724165fea11e01, type: 2}
+  models: {fileID: 11400000, guid: f8c0e03d3c3a446d82cf2700442c4292, type: 2}
   waterSettings: {fileID: 11400000, guid: 6db132b3ab2847738b7c2f522b6f4f86, type: 2}
 --- !u!1 &4857454538395859932
 GameObject:

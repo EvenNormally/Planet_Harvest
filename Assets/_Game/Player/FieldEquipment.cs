@@ -9,6 +9,7 @@ namespace PlanetHarvest.Player
     {
         [SerializeField] private GameObject[] items;
         [SerializeField] private ToolUpgradeSet upgradeSet;
+        [SerializeField] private ModelLibrary modelLibrary;
         private static readonly Key[] Keys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4 };
         private static readonly MaterialId[] Materials = { MaterialId.None, MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre };
         public bool ShowingTool => Slot == 0 && models[(int)Tools.Active].activeSelf;
@@ -35,7 +36,10 @@ namespace PlanetHarvest.Player
             var drill = new GameObject("Kernbohrer");
             drill.transform.SetParent(transform, false);
             models[2] = drill;
+            var model = modelLibrary ? modelLibrary.Spawn(GameModel.HandDrill, drill.transform, finish) : null;
+            if (model) model.name = "Modell";
             Color mint = new Color(.25f,.77f,.64f), dark = new Color(.16f,.23f,.26f);
+            if (model) { FinishVariants(drill); return; }
             FieldProps.Part(drill.transform, "Griff", PrimitiveType.Cube, new Vector3(0,-.08f,0),
                 new Vector3(.063f,.20f,.085f), dark, finish);
             FieldProps.Part(drill.transform, "Motor", PrimitiveType.Cube, new Vector3(0,.07f,.02f),
@@ -65,6 +69,11 @@ namespace PlanetHarvest.Player
                     new Vector3(width,width,.048f), i%2==0 ? Color.gray : dark, finish);
                 tooth.transform.localRotation = Quaternion.Euler(0,0,i*28);
             }
+            FinishVariants(drill);
+        }
+
+        private void FinishVariants(GameObject drill)
+        {
             // Reuse the drill assembly for the starter and reach upgrade.
             models[0] = Instantiate(drill, transform);
             models[0].name = "Handbohrer";
@@ -73,7 +82,7 @@ namespace PlanetHarvest.Player
             models[1].name = "Langbohrer";
             models[1].transform.localScale = new Vector3(.92f,.92f,1.25f);
             models[1].SetActive(false);
-            for (int i = 0; i < models.Length; i++) spindles[i] = models[i].transform.Find("Spindel");
+            for (int i = 0; i < models.Length; i++) spindles[i] = ModelLibrary.Find(models[i].transform, "Spindel");
             drill.SetActive(false);
         }
 

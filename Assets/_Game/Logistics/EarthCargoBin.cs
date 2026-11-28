@@ -33,8 +33,15 @@ namespace PlanetHarvest.Logistics
         private Transform contents, cargoHeap;
         private float lastFill = -1;
 
-        internal void BuildGauge(Material hardware, ContainerKind kind)
+        internal void BuildGauge(Material hardware, ContainerKind kind, Art.ModelLibrary models = null)
         {
+            // The material-specific model replaces the generic body; the fill gauge below stays data driven.
+            var model = models ? models.SpawnContainer(kind, transform, hardware) : null;
+            if (model)
+            {
+                var body = transform.Find("Frachtkörper");
+                if (body && body.TryGetComponent(out Renderer shell)) shell.enabled = false;
+            }
             var baseColor = material == MaterialId.Soil ? new Color(.46f,.28f,.13f) :
                 material == MaterialId.Stone ? new Color(.58f,.61f,.65f) : new Color(.78f,.55f,.36f);
             Art.FieldProps.Part(transform, "Schauglas", PrimitiveType.Cube, new Vector3(0,-.37f,-.70f),

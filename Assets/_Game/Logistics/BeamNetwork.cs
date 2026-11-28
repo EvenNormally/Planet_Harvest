@@ -48,6 +48,10 @@ namespace PlanetHarvest.Logistics
         private Transform intakeBeam;
         private Renderer status;
         private int builtLayout = -1;
+        private ModelLibrary models;
+        private readonly List<Transform> rings = new List<Transform>();
+        private readonly List<Transform> cores = new List<Transform>();
+        private readonly List<Transform> beamsShown = new List<Transform>();
 
         public BeamSettings Settings { get; private set; }
         public BeamChain Chain { get; private set; }
@@ -58,8 +62,10 @@ namespace PlanetHarvest.Logistics
         public Vector3 IntakePoint => elevator.transform.position + elevator.transform.up * 1.6f;
         public bool Connected => MastCount > 0 && Vector3.Distance(Orb(nodes.Count - 1), IntakePoint) <= Settings.Range;
 
-        public void Initialize(VoxelPlanet planet, EarthElevator elevator, BeamSettings settings, Predicate<Vector3Int> foundation)
+        public void Initialize(VoxelPlanet planet, EarthElevator elevator, BeamSettings settings, Predicate<Vector3Int> foundation,
+            ModelLibrary models = null)
         {
+            this.models = models;
             this.planet = planet;
             this.elevator = elevator;
             this.foundation = foundation;
@@ -176,6 +182,9 @@ namespace PlanetHarvest.Logistics
             builtLayout = LayoutRevision;
             foreach (var prop in props) Destroy(prop);
             props.Clear();
+            rings.Clear();
+            cores.Clear();
+            beamsShown.Clear();
             status = null;
             intakeBeam = null;
             for (int i = 0; i < nodes.Count; i++)
@@ -186,29 +195,44 @@ namespace PlanetHarvest.Logistics
                 root.SetParent(transform, false);
                 root.SetPositionAndRotation(foot, Quaternion.FromToRotation(Vector3.up, up));
                 props.Add(root.gameObject);
+                var model = models ? models.Spawn(i == 0 ? GameModel.BeamHopper : GameModel.TractorMast, root, finish) : null;
+                if (model)
+                {
+                    AddIfFound(cores, ModelLibrary.Find(model, "Strahlkern"));
+                    AddIfFound(rings, ModelLibrary.Find(model, "Ring"));
+                }
                 if (i == 0)
                 {
+                    if (model) status = ModelLibrary.Find(model, "Statusleuchte")?.GetComponent<Renderer>();
+                    else
+                    {
                     FieldProps.Part(root, "Trichtersockel", PrimitiveType.Cylinder, Vector3.up * .3f, new Vector3(1.4f, .3f, 1.4f), Mast, finish);
                     FieldProps.Part(root, "Trichter", PrimitiveType.Cylinder, Vector3.up * .85f, new Vector3(1.7f, .25f, 1.7f), Amber, finish);
                     FieldProps.Part(root, "Strahlkern", PrimitiveType.Sphere, Vector3.up * HopperHeight, Vector3.one * .45f, Violet, finish);
+                    }
                     var box = root.gameObject.AddComponent<BoxCollider>();
                     box.center = Vector3.up * .6f;
                     box.size = new Vector3(1.7f, 1.2f, 1.7f);
                     root.gameObject.AddComponent<BeamHopper>();
-                    status = FieldProps.Part(root, "Statusleuchte", PrimitiveType.Sphere, new Vector3(.75f, .7f, 0),
-                        Vector3.one * .22f, Mint, finish).GetComponent<Renderer>();
+                    if (!status)
+                        status = FieldProps.Part(root, "Statusleuchte", PrimitiveType.Sphere, new Vector3(.75f, .7f, 0),
+                            Vector3.one * .22f, Mint, finish).GetComponent<Renderer>();
                     continue;
                 }
+                var beam = Beam($"Strahl {i}", Orb(i - 1), Orb(i));
+                props.Add(beam.gameObject);
+                beamsShown.Add(beam);
+                if (model) continue;
                 FieldProps.Part(root, "Fuß", PrimitiveType.Cylinder, Vector3.up * .1f, new Vector3(.7f, .1f, .7f), Mast, finish);
                 FieldProps.Part(root, "Mast", PrimitiveType.Cylinder, Vector3.up * 1.5f, new Vector3(.16f, 1.5f, .16f), Mast, finish);
                 FieldProps.Part(root, "Ring", PrimitiveType.Cylinder, Vector3.up * (OrbHeight - .3f), new Vector3(.6f, .04f, .6f), Mint, finish);
                 FieldProps.Part(root, "Strahlkern", PrimitiveType.Sphere, Vector3.up * OrbHeight, Vector3.one * .38f, Violet, finish);
-                props.Add(Beam($"Strahl {i}", Orb(i - 1), Orb(i)).gameObject);
             }
             if (MastCount > 0)
             {
                 intakeBeam = Beam("Lift-Einspeisung", Orb(nodes.Count - 1), IntakePoint);
                 props.Add(intakeBeam.gameObject);
+                beamsShown.Add(intakeBeam);
             }
         }
 
@@ -250,6 +274,21 @@ namespace PlanetHarvest.Logistics
                 status.SetPropertyBlock(tint);
             }
             if (intakeBeam) intakeBeam.gameObject.SetActive(Connected);
+            // Living beam: rings spin, cores breathe, beams shimmer in width.
+            float time = Time.time;
+            foreach (var ring in rings) ring.Rotate(0, 90 * Time.deltaTime, 0, Space.Self);
+            for (int i = 0; i < cores.Count; i++) cores[i].localScale = Vector3.one * (1 + .12f * Mathf.Sin(time * 4 + i));
+            for (int i = 0; i < beamsShown.Count; i++)
+            {
+                var scale = beamsShown[i].localScale;
+                float width = .07f * (1 + .35f * Mathf.Sin(time * 9 + i * 1.3f));
+                beamsShown[i].localScale = new Vector3(width, scale.y, width);
+            }
+        }
+
+        private static void AddIfFound(List<Transform> list, Transform item)
+        {
+            if (item) list.Add(item);
         }
 
         /// <summary>Continuous slot coordinate (0 = hopper emitter, k·S = mast k) to a world position.</summary>

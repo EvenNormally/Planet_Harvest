@@ -17,6 +17,11 @@ namespace PlanetHarvest.Logistics
         public Machines.RobotSettings RobotSettings => robotSettings;
         [SerializeField] private WaterSettings waterSettings;
         public WaterSettings WaterSettings => waterSettings;
+        [SerializeField] private ModelLibrary models;
+        public ModelLibrary Models => models;
+        private Transform station;
+        private MaterialId launched;
+        private float pulse;
         private EarthCargoBin[] bins;
         private Material hardware;
         private Transform[] extensions;
@@ -65,7 +70,9 @@ namespace PlanetHarvest.Logistics
             var deck = FieldProps.Part(transform, "Erzrampe", PrimitiveType.Cube, new Vector3(7.4f,-.19f,0),
                 new Vector3(9.9f,.52f,2.7f), new Color(.18f,.26f,.29f), hardware);
             deck.AddComponent<BoxCollider>();
-            for (int i = 0; i < bins.Length; i++) bins[i].BuildGauge(hardware, program.Materials[i].Container);
+            for (int i = 0; i < bins.Length; i++) bins[i].BuildGauge(hardware, program.Materials[i].Container, models);
+            var model = models ? models.Spawn(GameModel.SpaceElevator, transform, hardware) : null;
+            station = ModelLibrary.Find(model, "Basisstation");
             BuildExtensions();
         }
 
@@ -129,12 +136,27 @@ namespace PlanetHarvest.Logistics
             }
         }
 
+        /// <summary>The base station bounces once whenever a full cabin leaves for orbit.</summary>
+        private void AnimateLaunch()
+        {
+            if (Freight.Flying != launched)
+            {
+                if (Freight.Flying != MaterialId.None && !Freight.Returning) pulse = 1;
+                launched = Freight.Flying;
+            }
+            if (!station) return;
+            pulse = Mathf.Max(0, pulse - Time.deltaTime * 1.6f);
+            float bounce = Mathf.Sin(pulse * Mathf.PI * 3) * pulse * .12f;
+            station.localScale = new Vector3(1 - bounce * .5f, 1 + bounce, 1 - bounce * .5f);
+        }
+
         private void OnDestroy() => Destroy(hardware);
 
         private void Update()
         {
             if (!Replica) Freight.Advance(Time.deltaTime);
             AnimateConstruction();
+            AnimateLaunch();
             float fraction = Mathf.SmoothStep(0, 1, Freight.LegProgress);
             float height = 65 * (Freight.Returning ? 1 - fraction : fraction);
             if (bins != null) foreach (var bin in bins) Position(bin, height);

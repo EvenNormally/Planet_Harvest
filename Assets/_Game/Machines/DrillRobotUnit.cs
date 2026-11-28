@@ -33,6 +33,9 @@ namespace PlanetHarvest.Machines
         private BoxCollider hitBox;
         private int shownRevision = -1, outlinedArea = -1, areaRevision;
         private float walk;
+        private ModelLibrary models;
+        private MiningDebris dust;
+        private int dustStrokes;
 
         public RobotSettings Settings { get; private set; }
         public DrillRobot Robot { get; private set; }
@@ -40,8 +43,9 @@ namespace PlanetHarvest.Machines
         public bool Unlocked => wallet.CompletedContracts >= Settings.UnlockAfterContracts;
 
         public void Initialize(VoxelPlanet planet, EarthFreight wallet, BeamNetwork beams, RobotSettings settings,
-            Predicate<Vector3Int> foundation, Func<Vector3, bool> nearBase)
+            Predicate<Vector3Int> foundation, Func<Vector3, bool> nearBase, ModelLibrary models = null)
         {
+            this.models = models;
             this.planet = planet;
             this.wallet = wallet;
             this.beams = beams;
@@ -52,6 +56,9 @@ namespace PlanetHarvest.Machines
             finish = FieldProps.Finish();
             tint = new MaterialPropertyBlock();
             BuildBody();
+            dust = new GameObject("Roboterstaub").AddComponent<MiningDebris>();
+            dust.transform.SetParent(transform, false);
+            dust.Prepare(Resources.GetBuiltinResource<Mesh>("Cube.fbx"));
         }
 
         public RobotWorkArea AreaAt(Vector3Int centre) => new RobotWorkArea(centre, Settings.Width, Settings.Length, Settings.Depth);
@@ -138,6 +145,15 @@ namespace PlanetHarvest.Machines
             hitBox.center = Vector3.up * .75f;
             hitBox.size = new Vector3(1.4f, 1.3f, 1.6f);
             body.gameObject.AddComponent<DrillRobotMarker>().Unit = this;
+            var model = models ? models.Spawn(GameModel.DrillRobot, body, finish) : null;
+            if (model)
+            {
+                lamp = ModelLibrary.Find(model, "Statusleuchte").GetComponent<Renderer>();
+                drillHead = ModelLibrary.Find(model, "Bohrkopf");
+                for (int i = 0; i < legs.Length; i++) legs[i] = ModelLibrary.Find(model, $"Bein{i}");
+                body.gameObject.SetActive(false);
+                return;
+            }
             FieldProps.Part(body, "Rumpf", PrimitiveType.Cube, Vector3.up * .9f, new Vector3(1.1f, .6f, 1.3f), Orange, finish);
             FieldProps.Part(body, "Kuppel", PrimitiveType.Sphere, new Vector3(0, 1.25f, -.15f), new Vector3(.7f, .45f, .7f), Mint, finish);
             FieldProps.Part(body, "Antenne", PrimitiveType.Cylinder, new Vector3(.3f, 1.6f, -.3f), new Vector3(.04f, .25f, .04f), Graphite, finish);
@@ -213,6 +229,12 @@ namespace PlanetHarvest.Machines
             for (int i = 0; i < legs.Length; i++)
                 legs[i].localRotation = Quaternion.Euler(Mathf.Sin(walk + (i % 3 == 0 ? 0 : Mathf.PI)) * 25, 0, 0);
             if (working) drillHead.Rotate(0, Time.deltaTime * 720, 0, Space.Self);
+            if (Robot.Strokes != dustStrokes)
+            {
+                dustStrokes = Robot.Strokes;
+                Vector3 hit = planet.transform.TransformPoint(contact);
+                dust.Burst(hit, up, up, MaterialId.Stone);
+            }
             Color color = Robot.State switch
             {
                 RobotState.Working => Mint,

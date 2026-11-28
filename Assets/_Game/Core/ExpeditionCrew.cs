@@ -369,6 +369,12 @@ namespace PlanetHarvest.Core
             {
                 avatar = new GameObject("Alien · Crew").transform;
                 suit = FieldProps.Finish();
+                if (miner.Elevator.Models && miner.Elevator.Models.Spawn(GameModel.AlienCrew, avatar, suit))
+                {
+                    avatar.gameObject.SetActive(true);
+                    avatar.SetPositionAndRotation(otherPosition, otherRotation);
+                    return;
+                }
                 Color green = new Color(.47f,.88f,.62f);
                 FieldProps.Part(avatar,"Anzug",PrimitiveType.Capsule,Vector3.down*.18f,new Vector3(.62f,.67f,.58f),new Color(.98f,.6f,.16f),suit);
                 FieldProps.Part(avatar,"Kopf",PrimitiveType.Sphere,Vector3.up*.66f,new Vector3(.8f,.74f,.68f),green,suit);

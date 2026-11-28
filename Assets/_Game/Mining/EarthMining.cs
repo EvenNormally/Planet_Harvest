@@ -88,19 +88,19 @@ namespace PlanetHarvest.Mining
             if (Physics.Raycast(foot + up*7, -up, out var ground, 14) && ground.collider.GetComponentInParent<VoxelPlanet>() == planet)
                 foot = ground.point;
             Workshop.transform.SetPositionAndRotation(foot, Quaternion.LookRotation(Vector3.ProjectOnPlane(planet.transform.forward,up),up));
-            Workshop.Assemble();
+            Workshop.Assemble(Elevator.Models);
             Beams = new GameObject("Traktorstrahl").AddComponent<BeamNetwork>();
             Beams.transform.SetParent(planet.transform.parent, false);
-            Beams.Initialize(planet, Elevator, Elevator.BeamSettings, IsFoundation);
+            Beams.Initialize(planet, Elevator, Elevator.BeamSettings, IsFoundation, Elevator.Models);
             Robot = new GameObject("Maschinen").AddComponent<Machines.DrillRobotUnit>();
             Robot.transform.SetParent(planet.transform.parent, false);
-            Robot.Initialize(planet, Elevator.Freight, Beams, Elevator.RobotSettings, IsFoundation, NearBase);
+            Robot.Initialize(planet, Elevator.Freight, Beams, Elevator.RobotSettings, IsFoundation, NearBase, Elevator.Models);
             landscape = new GameObject("Landschaft").AddComponent<EarthLandscape>();
             landscape.transform.SetParent(planet.transform.parent, false);
             landscape.Populate(planet, view);
             Pump = new GameObject("Pumpstation").AddComponent<PumpStation>();
             Pump.transform.SetParent(planet.transform.parent, false);
-            Pump.Initialize(planet, Elevator.Freight, Beams, Elevator.WaterSettings, landscape.LakeSurface);
+            Pump.Initialize(planet, Elevator.Freight, Beams, Elevator.WaterSettings, landscape.LakeSurface, Elevator.Models);
             debris = new GameObject("Abbausplitter").AddComponent<MiningDebris>();
             debris.transform.SetParent(transform, false);
             debris.Prepare(Equipment.GetComponentInChildren<MeshFilter>().sharedMesh);
