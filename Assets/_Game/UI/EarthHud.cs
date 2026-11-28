@@ -1,6 +1,9 @@
 using PlanetHarvest.Mining;
 using PlanetHarvest.Progression;
+using PlanetHarvest.Player;
 using TMPro;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,17 +18,39 @@ namespace PlanetHarvest.UI
         private static readonly Color32 Muted = new Color32(186,204,200,255);
         private static readonly Color32 Mint = new Color32(128,229,190,255);
         private static readonly MaterialId[] Materials = { MaterialId.None, MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre };
-        private static readonly string[] Names = { "Feldhacke", "Erde", "Stein", "Eisenerz" };
+        private static readonly string[] Names = { "Handbohrer", "Erde", "Stein", "Eisenerz" };
         private readonly Image[] outlines = new Image[4];
         private readonly TextMeshProUGUI[] quantities = new TextMeshProUGUI[4];
         private EarthMining mining;
         private TMP_FontAsset font;
         private TextMeshProUGUI level, title, instruction, progress, soil, stone, flight, hint;
         private Image bar;
+        private TextMeshProUGUI telemetry, crewStatus, crewButton;
+        private TMP_InputField address;
+        private TextMeshProUGUI beltTool, menuTitle, wallet, holdings, footer;
+        private readonly TextMeshProUGUI[] toolLabels = new TextMeshProUGUI[MiningTools.Count];
+        private readonly Button[] toolButtons = new Button[MiningTools.Count];
+        private RectTransform modal, gameplay;
+        private FieldMenu displayedMenu;
+        private EventSystem events;
         private float nextRefresh;
-        private (int slot, MaterialId target, MaterialId bin, long soil, long stone, long iron, long loadedSoil,
-            long loadedStone, int levels, MaterialId flying, bool returning) last;
-        private bool initialized;
+        private (int slot, MaterialId target, MaterialId bin, bool shop, int inventory, int freight,
+            MiningTool active, FieldMenu menu) last;
+        public bool EditingAddress => address && address.isFocused;
+        private bool initialized, showPerformance;
+        private int measuredFrames;
+        private float sampleTime, fps;
+
+        private void Update()
+        {
+            if (UnityEngine.InputSystem.Keyboard.current?.f3Key.wasPressedThisFrame == true) showPerformance = !showPerformance;
+            sampleTime += Time.unscaledDeltaTime;
+            measuredFrames++;
+            if (sampleTime < .5f) return;
+            fps = measuredFrames / sampleTime;
+            sampleTime = 0;
+            measuredFrames = 0;
+        }
 
         private void Start()
         {
@@ -38,7 +63,14 @@ namespace PlanetHarvest.UI
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280,720);
             scaler.matchWidthOrHeight = .5f;
-            var root = (RectTransform)canvas.transform;
+            var screen = (RectTransform)canvas.transform;
+            canvas.AddComponent<GraphicRaycaster>();
+            var root = (RectTransform)new GameObject("Spielanzeige", typeof(RectTransform)).transform;
+            root.SetParent(screen, false);
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = root.offsetMax = Vector2.zero;
+            gameplay = root;
 
             var order = Panel(root, "Lieferauftrag", new Vector2(0,1), new Vector2(22,-20), new Vector2(300,126), Ink);
             Box(order, 0,0,4,126,Mint);
@@ -68,54 +100,170 @@ namespace PlanetHarvest.UI
                 glyph.Slot = i;
                 glyph.raycastTarget = false;
                 quantities[i] = Label(tile,49,2,27,16,13,Paper,true,TextAlignmentOptions.MidlineRight);
-                Label(tile,0,41,81,21,14,Paper,true,TextAlignmentOptions.Center).text = Names[i];
+                var caption = Label(tile,0,41,81,21,14,Paper,true,TextAlignmentOptions.Center);
+                caption.text = Names[i];
+                if (i == 0) beltTool = caption;
             }
             var help = Panel(root,"Aktion",bottom,new Vector2(0,100),new Vector2(368,31),Ink);
             hint = Label(help,4,1,360,28,15,Paper,false,TextAlignmentOptions.Center);
             var centre = new Vector2(.5f,.5f);
             Panel(root,"Visierkontur",centre,Vector2.zero,new Vector2(6,6),Ink);
             Panel(root,"Visier",centre,Vector2.zero,new Vector2(3,3),Paper);
+            var pocket = Panel(root, "Inventartaste", Vector2.zero, new Vector2(22,20), new Vector2(268,98), Ink);
+            Label(pocket,10,4,250,23,14,Paper,true).text = "Tab  Inventar & Crew     R  Bohrform";
+            telemetry = Label(pocket,10,30,250,62,13,Muted,false,TextAlignmentOptions.TopLeft);
+            BuildMenu(screen);
+        }
+
+        private void BuildMenu(RectTransform root)
+        {
+            events = EventSystem.current;
+            if (!events)
+            {
+                var host = new GameObject("Menü-Eingabe",typeof(EventSystem),typeof(InputSystemUIInputModule));
+                host.transform.SetParent(root,false);
+                events = host.GetComponent<EventSystem>();
+            }
+            modal = Panel(root,"Feldmenü",new Vector2(.5f,.5f),Vector2.zero,new Vector2(590,492),Ink);
+            Box(modal,0,0,590,4,Mint);
+            menuTitle = Label(modal,22,16,320,42,30,Paper,true);
+            wallet = Label(modal,346,21,218,28,18,Mint,true,TextAlignmentOptions.MidlineRight);
+            Label(modal,22,78,183,23,14,Mint,true).text = "ROHSTOFFE";
+            Label(modal,221,78,340,23,14,Mint,true).text = "WERKZEUGE";
+            holdings = Label(modal,22,110,188,170,17,Paper,false,TextAlignmentOptions.TopLeft);
+            for (int i = 0; i < MiningTools.Count; i++)
+            {
+                var tool = (MiningTool)i;
+                var row = Box(modal,221,107+i*59,347,52,Slate);
+                toolButtons[i] = MenuButton(row, () => mining.ChooseTool(tool));
+                toolLabels[i] = Label(row.rectTransform,10,3,330,46,15,Paper);
+            }
+            footer = Label(modal,22,290,548,28,15,Muted);
+            var close = Box(modal,22,332,160,32,Slate);
+            MenuButton(close, () => mining.CloseMenu());
+            Label(close.rectTransform,5,1,150,30,15,Paper,true,TextAlignmentOptions.Center).text = "Schließen";
+            Label(modal,209,334,360,26,14,Muted,false,TextAlignmentOptions.MidlineRight).text = "1–3  Werkzeug wählen     ·     Esc  Zurück";
+            crewStatus = Label(modal,22,371,548,21,14,Mint);
+            address = AddressField(modal);
+            var hostButton = Box(modal,22,402,150,33,Slate);
+            MenuButton(hostButton, () =>
+            {
+                if (mining.Crew.Hosting || mining.Crew.IsGuest) mining.Crew.StopSession();
+                else mining.Crew.Host();
+            });
+            crewButton = Label(hostButton.rectTransform,4,1,142,31,14,Paper,true,TextAlignmentOptions.Center);
+            var join = Box(modal,414,402,154,33,Slate);
+            MenuButton(join, () => mining.Crew.Join(address.text));
+            Label(join.rectTransform,4,1,146,31,14,Paper,true,TextAlignmentOptions.Center).text = "IP beitreten";
+            Label(modal,22,445,548,31,14,Muted).text = "F5  Speichern     F9  Laden     ·     Spielstand liegt beim Host";
+            modal.gameObject.SetActive(false);
+        }
+
+        private TMP_InputField AddressField(RectTransform panel)
+        {
+            var field = Box(panel,181,402,224,33,Slate);
+            field.raycastTarget = true;
+            var input = field.gameObject.AddComponent<TMP_InputField>();
+            var value = Label(field.rectTransform,8,0,208,33,16,Paper);
+            input.textViewport = field.rectTransform;
+            input.textComponent = value;
+            input.lineType = TMP_InputField.LineType.SingleLine;
+            input.characterValidation = TMP_InputField.CharacterValidation.None;
+            input.characterLimit = 45;
+            input.text = "127.0.0.1";
+            return input;
+        }
+
+        private static Button MenuButton(Image image, UnityEngine.Events.UnityAction action)
+        {
+            image.raycastTarget = true;
+            var button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            var colors = button.colors;
+            colors.selectedColor = new Color(.68f,1,.82f);
+            colors.disabledColor = new Color(.70f,.70f,.70f);
+            button.colors = colors;
+            button.onClick.AddListener(action);
+            return button;
         }
 
         private void LateUpdate()
         {
-            if (mining?.Elevator == null || Time.unscaledTime < nextRefresh) return;
+            if (mining?.Elevator == null) return;
+            bool menuChanged = displayedMenu != mining.Menu;
+            if (!menuChanged && Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + .08f;
             var cargo = mining.Elevator.Freight;
             var pack = mining.Inventory;
             const long unit = HarvestInventory.CubicMetre;
+            float exported = (float)((double)cargo.TotalDelivered / (unit * (double)mining.Planet.Data.InitialCount) * 100);
+            telemetry.text = $"Rucksack   {pack.Amount / unit} / {pack.Capacity / unit} m³   ·   {DrillStroke.Name(mining.Profile)}\nPlanet abgeführt   {exported:F4} %\n{mining.Crew.Status}";
+            if (showPerformance) telemetry.text += $"   ·   {fps:F0} FPS";
+            crewStatus.text = mining.Crew.Paired ? $"{mining.Crew.Status}    ·    Partner trägt {mining.Crew.PartnerLoad/unit} m³" : mining.Crew.Status;
+            crewButton.text = mining.Crew.Hosting || mining.Crew.IsGuest ? "Trennen" : "Crew hosten";
             var state = (mining.Equipment.Slot, mining.Target, mining.Bin ? mining.Bin.Material : MaterialId.None,
-                pack.AmountOf(MaterialId.Soil), pack.AmountOf(MaterialId.Stone), pack.AmountOf(MaterialId.IronOre),
-                cargo.Container(MaterialId.Soil).Amount, cargo.Container(MaterialId.Stone).Amount,
-                cargo.CompletedLevels, cargo.Flying, cargo.Returning);
+                mining.AtWorkshop, pack.Revision, cargo.Revision, mining.Equipment.Tools.Active, mining.Menu);
             if (initialized && last.Equals(state)) return;
             last = state;
             initialized = true;
-            bool first = last.levels == 0;
-            bool complete = last.levels == 2;
-            var required = first ? MaterialId.Soil : MaterialId.Stone;
-            int goal = first ? EarthFreight.SoilGoal : EarthFreight.StoneGoal;
-            long ready = System.Math.Min(goal,(pack.AmountOf(required) + cargo.Container(required).Amount) / unit);
-            level.text = complete ? "AUFTRÄGE ABGESCHLOSSEN" : first ? "LIEFERAUFTRAG    01 / 02" : "LIEFERAUFTRAG    02 / 02";
-            title.text = complete ? "Freier Abbau" : first ? "Bodenprobe" : "Gesteinslieferung";
-            instruction.text = complete ? "Der Elevator nimmt weiter Fracht an." : $"{goal} m³ {required.Name()} in den Orbit liefern.";
-            bar.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,complete ? 168 : 168f * ready / goal);
-            progress.text = complete ? "2 / 2" : $"{ready} / {goal} m³";
-            soil.text = $"Erde     {last.loadedSoil / unit} / {EarthFreight.SoilGoal} m³";
-            stone.text = $"Stein     {last.loadedStone / unit} / {EarthFreight.StoneGoal} m³";
-            flight.text = last.flying == MaterialId.None ? "Voll beladen = Abflug" :
-                last.flying.Name() + (last.returning ? " · Rückkehr" : " · Aufstieg");
+            displayedMenu = mining.Menu;
+            bool open = displayedMenu != FieldMenu.Closed;
+            gameplay.gameObject.SetActive(!open);
+            modal.gameObject.SetActive(open);
+            if (open)
+            {
+                bool shop = displayedMenu == FieldMenu.Workshop;
+                menuTitle.text = shop ? "Werkzeugstation" : "Inventar";
+                wallet.text = $"{cargo.Credits} Credits";
+                var stock = new System.Text.StringBuilder();
+                for (int i = 0; i < EarthFreight.LevelCount; i++)
+                {
+                    var resource = EarthFreight.Order(i).Material;
+                    stock.AppendLine($"{resource.Name()}   {pack.AmountOf(resource)/unit} m³");
+                }
+                holdings.text = stock.ToString();
+                for (int i = 0; i < toolLabels.Length; i++)
+                {
+                    var tool = (MiningTool)i;
+                    var spec = MiningTools.Spec(tool);
+                    bool owned = mining.Equipment.Tools.Owns(tool);
+                    string action = tool == last.active ? "Ausgerüstet" : owned ? "Ausrüsten" : shop ? $"{spec.Price} Credits" : "Werkzeugstation";
+                    toolLabels[i].text = $"{i+1}   <b>{spec.Name}</b>    ·    {action}\n      {spec.Description}";
+                    toolButtons[i].interactable = owned || (shop && cargo.Credits >= spec.Price);
+                }
+                footer.text = shop ? "Credits erhältst du, sobald eine volle Ladung den Orbit erreicht." : "Neue Werkzeuge gibt es an der Werkbank links vom Startplatz.";
+                if (menuChanged) events.SetSelectedGameObject(toolButtons[(int)last.active].gameObject);
+                return;
+            }
+            if (menuChanged) events.SetSelectedGameObject(null);
+            int stages = EarthFreight.LevelCount;
+            bool complete = cargo.CompletedLevels == stages;
+            var order = EarthFreight.Order(Mathf.Min(cargo.CompletedLevels,stages-1));
+            long loaded = cargo.Container(order.Material).Amount / unit;
+            long ready = System.Math.Min(order.Volume, cargo.Delivered(order.Material)/unit);
+            level.text = complete ? "AUFTRÄGE ABGESCHLOSSEN" : cargo.CompletedLevels < 2 ? $"LANDEVERTRAG    {cargo.CompletedLevels+1} / 2" : $"LANDEVERTRAG ERFÜLLT   ·   EXTRA {cargo.CompletedLevels-1}/{stages-2}";
+            title.text = complete ? "Freier Abbau" : order.Title;
+            instruction.text = complete ? "Weitere Lieferungen bringen Credits." : $"{order.Volume} m³ {order.Material.Name()} in den Orbit liefern.";
+            bar.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,complete ? 168 : 168f * ready / order.Volume);
+            progress.text = complete ? $"{stages} / {stages}" : $"{ready} / {order.Volume} m³";
+            soil.text = $"{order.Material.Name()}    {loaded} / {order.Volume} m³";
+            stone.text = $"Guthaben    {cargo.Credits} Credits";
+            flight.text = cargo.Flying == MaterialId.None ? "Voll beladen = Abflug" :
+                cargo.Flying.Name() + (cargo.Returning ? " · Rückkehr" : " · Aufstieg");
+            beltTool.text = MiningTools.Spec(last.active).Name;
             for (int i = 0; i < outlines.Length; i++)
             {
                 outlines[i].color = i == last.slot ? Mint : Slate;
                 if (i > 0) quantities[i].text = (pack.AmountOf(Materials[i]) / unit).ToString();
             }
-            if (last.bin != MaterialId.None)
+            if (last.shop) hint.text = "E   Werkzeugstation öffnen";
+            else if (last.bin != MaterialId.None)
                 hint.text = cargo.Container(last.bin).Free == 0 ? "Voll beladen · wartet auf den Lift"
-                    : pack.AmountOf(last.bin) > 0 ? $"E   {last.bin.Name()} einladen" : $"{last.bin.Name()}container · kein passender Vorrat";
+                    : pack.AmountOf(last.bin) > 0 ? $"E   {last.bin.Name()} einladen" : cargo.Container(last.bin).Amount > 0 ? "E   Teilladung versenden" : $"{last.bin.Name()}container · leer";
+            else if (pack.Free < unit) hint.text = "Rucksack voll · am Lift mit E entladen";
             else if (last.target != MaterialId.None)
-                hint.text = last.slot == 0 ? $"LMB   {last.target.Name()} abbauen" : "1   Feldhacke ausrüsten";
-            else hint.text = last.slot == 0 ? "1–4  /  Mausrad    Ausrüstung wechseln" : Names[last.slot] + "   ·   1 für die Feldhacke";
+                hint.text = last.slot == 0 ? $"LMB   {last.target.Name()} abbauen" : "1   Werkzeug ausrüsten";
+            else hint.text = "LMB  Bohren    ·    R  Form wechseln    ·    E  Verladen";
         }
 
         private static RectTransform Rect(RectTransform parent, string name, Vector2 anchor, Vector2 offset, Vector2 size)

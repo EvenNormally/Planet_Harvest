@@ -1,5 +1,7 @@
 # Testplanet mit 200 Metern Radius
 
+Historischer Testbericht. Die Testplanet-Szene wurde am 26.11.2026 entfernt. Die aktuelle Spielszene ist `Assets/_Game/Scenes/PlanetHarvest_Earth.unity`.
+
 In Unity `Assets/_Game/Scenes/PlanetHarvest_Test200m.unity` öffnen und Play drücken.
 Die Szene liegt im vorhandenen Szenenordner; es wurden keine Ordner angelegt.
 

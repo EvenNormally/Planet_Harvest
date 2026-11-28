@@ -14,8 +14,14 @@ namespace PlanetHarvest.Voxel
         [SerializeField] private Material stoneMaterial;
         [SerializeField] private EarthPlanetSettings earthSettings;
         [SerializeField] private Material ironMaterial;
+        private string worldKey;
+        public string WorldKey => worldKey ??= earthSettings.PlanetId + "/" + EarthPlanetField.GeneratorVersion + "/" + JsonUtility.ToJson(earthSettings);
+        private readonly HashSet<Vector3Int> dirty = new HashSet<Vector3Int>();
+        private readonly List<Vector3Int> rebuildBatch = new List<Vector3Int>();
+        public event System.Action<Vector3Int> CellRestored;
         public EarthPlanetField Earth { get; private set; }
         private Material[] terrainMaterials;
+        public event System.Action<Vector3Int> CellMined;
         [SerializeField] private GameObject editorPreview;
         public int CellSize => earthSettings != null ? 1 : settings.CellSize;
         private readonly Dictionary<Vector3Int, MeshFilter> chunks = new Dictionary<Vector3Int, MeshFilter>();
@@ -31,11 +37,13 @@ namespace PlanetHarvest.Voxel
         {
             if (editorPreview != null) editorPreview.SetActive(false);
             Earth = earthSettings != null ? earthSettings.CreateField() : null;
-            terrainMaterials = Earth != null ? new[] { material, stoneMaterial, ironMaterial }
+            terrainMaterials = Earth != null ? new[] { material, stoneMaterial, ironMaterial,
+                OreFinish("Kupfererz", new Color(.10f,.32f,.29f), new Color(.96f,.58f,.29f)),
+                OreFinish("Quarz", new Color(.32f,.24f,.46f), new Color(.86f,.8f,.98f)) }
                 : new[] { material, stoneMaterial != null ? stoneMaterial : material };
-            Data = Earth != null ? new VoxelData(Earth) : new VoxelData(settings.MoonRadius / CellSize);
-            int min = Mathf.FloorToInt(-Data.Radius / (float)VoxelData.ChunkSize);
-            int max = Mathf.FloorToInt((Data.Radius - 1) / (float)VoxelData.ChunkSize);
+            Data = Earth != null ? new VoxelData(Earth, earthSettings.ChunkCells) : new VoxelData(settings.MoonRadius / CellSize);
+            int min = Mathf.FloorToInt(-Data.Radius / (float)Data.CellsPerChunk);
+            int max = Mathf.FloorToInt((Data.Radius - 1) / (float)Data.CellsPerChunk);
             for (int x = min; x <= max; x++)
             for (int y = min; y <= max; y++)
             for (int z = min; z <= max; z++)
@@ -43,6 +51,14 @@ namespace PlanetHarvest.Voxel
                 var key = new Vector3Int(x, y, z);
                 if (Data.IsSurfaceChunk(key)) Rebuild(key);
             }
+        }
+
+        private Material OreFinish(string label, Color host, Color seam)
+        {
+            var finish = new Material(ironMaterial) { name = label };
+            finish.SetColor("_Ground", host);
+            finish.SetColor("_Mark", seam);
+            return finish;
         }
 
         public bool TryMine(HarvestSession session, Vector3Int cell) => TryMine(session, cell, out _);
@@ -58,10 +74,54 @@ namespace PlanetHarvest.Voxel
         private bool TryMine(HarvestInventory inventory, long volume, Vector3Int cell, out MaterialId mined)
         {
             if (!inventory.TryMine(Data, cell, volume, out mined)) return false;
-            var dirty = new HashSet<Vector3Int> { VoxelData.ChunkOf(cell) };
-            foreach (var direction in Directions) dirty.Add(VoxelData.ChunkOf(cell + direction));
-            foreach (var key in dirty) Rebuild(key);
+            Changed(cell, true);
+            Flush(int.MaxValue);
             return true;
+        }
+
+        internal void Changed(Vector3Int cell, bool removed)
+        {
+            Vector3Int min = Data.ChunkKey(cell - Vector3Int.one);
+            Vector3Int max = Data.ChunkKey(cell + Vector3Int.one);
+            for (int x = min.x; x <= max.x; x++)
+            for (int y = min.y; y <= max.y; y++)
+            for (int z = min.z; z <= max.z; z++) dirty.Add(new Vector3Int(x, y, z));
+            if (removed) CellMined?.Invoke(cell);
+            else CellRestored?.Invoke(cell);
+        }
+
+        internal void ApplyCells(Vector3Int[] cells, bool replace)
+        {
+            if (replace)
+            {
+                var wanted = new HashSet<Vector3Int>(cells);
+                foreach (var old in new List<Vector3Int>(Data.Removed))
+                {
+                    if (wanted.Contains(old)) continue;
+                    Data.RestoreCell(old);
+                    Changed(old, false);
+                }
+            }
+            foreach (var cell in cells)
+                if (Data.TryRemove(cell, out _)) Changed(cell, true);
+            if (replace) Flush(int.MaxValue);
+        }
+
+        private void LateUpdate() => Flush(4);
+
+        private void Flush(int budget)
+        {
+            rebuildBatch.Clear();
+            foreach (var key in dirty)
+            {
+                rebuildBatch.Add(key);
+                if (rebuildBatch.Count >= budget) break;
+            }
+            foreach (var key in rebuildBatch)
+            {
+                Rebuild(key);
+                dirty.Remove(key);
+            }
         }
 
         public Vector3Int CellAt(RaycastHit hit)
@@ -78,23 +138,28 @@ namespace PlanetHarvest.Voxel
             var colors = Earth != null ? new List<Color32>() : null;
             var normals = new List<Vector3>();
             var uv = new List<Vector2>();
-            var triangles = new List<int>();
-            var owners = new List<Vector3Int>();
-            var stoneTriangles = new List<int>();
-            var stoneOwners = new List<Vector3Int>();
-            var ironTriangles = new List<int>();
-            var ironOwners = new List<Vector3Int>();
-            Vector3Int start = key * VoxelData.ChunkSize;
-            for (int x = 0; x < VoxelData.ChunkSize; x++)
-            for (int y = 0; y < VoxelData.ChunkSize; y++)
-            for (int z = 0; z < VoxelData.ChunkSize; z++)
+            var indices = new List<int>[terrainMaterials.Length];
+            var cells = new List<Vector3Int>[indices.Length];
+            for (int i = 0; i < indices.Length; i++)
+            {
+                indices[i] = new List<int>();
+                cells[i] = new List<Vector3Int>();
+            }
+            Vector3Int start = key * Data.CellsPerChunk;
+            for (int x = 0; x < Data.CellsPerChunk; x++)
+            for (int y = 0; y < Data.CellsPerChunk; y++)
+            for (int z = 0; z < Data.CellsPerChunk; z++)
             {
                 Vector3Int cell = start + new Vector3Int(x, y, z);
                 var resource = Data.MaterialAt(cell);
                 if (resource == MaterialId.None) continue;
-                var faceTriangles = resource == MaterialId.Stone ? stoneTriangles : triangles;
-                var faceOwners = resource == MaterialId.Stone ? stoneOwners : owners;
-                if (resource == MaterialId.IronOre) { faceTriangles = ironTriangles; faceOwners = ironOwners; }
+                int layer = resource switch
+                {
+                    MaterialId.Stone => 1, MaterialId.IronOre => 2,
+                    MaterialId.CopperOre => 3, MaterialId.Quartz => 4, _ => 0
+                };
+                var faceTriangles = indices[layer];
+                var faceOwners = cells[layer];
                 foreach (var direction in Directions)
                 {
                     if (Data.IsSolid(cell + direction)) continue;
@@ -142,8 +207,8 @@ namespace PlanetHarvest.Voxel
             Mesh mesh = filter.sharedMesh;
             var collider = filter.GetComponent<MeshCollider>();
             // Raycast triangleIndex traverses the submeshes in index order.
-            owners.AddRange(stoneOwners);
-            owners.AddRange(ironOwners);
+            var owners = cells[0];
+            for (int i = 1; i < cells.Length; i++) owners.AddRange(cells[i]);
             triangleCells[collider] = owners;
             collider.sharedMesh = null;
             mesh.Clear();
@@ -152,9 +217,7 @@ namespace PlanetHarvest.Voxel
             if (colors != null) mesh.SetColors(colors);
             mesh.SetUVs(0, uv);
             mesh.subMeshCount = terrainMaterials.Length;
-            mesh.SetTriangles(triangles, 0);
-            mesh.SetTriangles(stoneTriangles, 1);
-            if (Earth != null) mesh.SetTriangles(ironTriangles, 2);
+            for (int i = 0; i < indices.Length; i++) mesh.SetTriangles(indices[i], i);
             mesh.RecalculateBounds();
             if (owners.Count > 0) collider.sharedMesh = mesh;
         }
@@ -185,6 +248,11 @@ namespace PlanetHarvest.Voxel
 
         private void OnDestroy()
         {
+            if (Earth != null)
+            {
+                Destroy(terrainMaterials[3]);
+                Destroy(terrainMaterials[4]);
+            }
             foreach (var filter in chunks.Values)
                 if (filter != null && filter.sharedMesh != null) Destroy(filter.sharedMesh);
         }

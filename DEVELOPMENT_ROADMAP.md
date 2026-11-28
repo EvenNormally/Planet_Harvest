@@ -1,6 +1,6 @@
 # Entwicklungsroadmap
 
-**Hinweis vom 24. November 2026:** Diese Phasentabelle enthält noch die frühere Mond- und Credit-Planung. Die aktuelle Richtung mit erdähnlichem Startplaneten, Höhlen und Crafting ohne Geld steht in [Docs/CURRENT_GAME_DIRECTION.md](Docs/CURRENT_GAME_DIRECTION.md) und hat bei Widersprüchen Vorrang.
+**Historischer Entwurf.** Seit dem 27. November 2026 gilt der [Entwicklungsstand des ersten Prototyps](Docs/CURRENT_GAME_DIRECTION.md). Die folgenden Abschnitte dokumentieren frühere Planungen.
 
 Die operativen Codex-Aufträge und ihre Akzeptanzkriterien stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Das ausführliche Spielkonzept steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Diese Tabelle bleibt die Phasenübersicht.
 

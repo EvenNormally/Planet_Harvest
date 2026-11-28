@@ -1,17 +1,14 @@
 # Technische Architektur
 
-## Ist-Zustand
+## Spielbare Erd-Szene
 
-Die Gameplay-Szenen verwenden das vorhandene Input System und URP. Der kleine Mond
-versendet volle Container sofort. Auf dem 200-m-Testplaneten schließt erst die
-Rückkehr des Kanisters die Lieferung ab. Beim Abschluss zählt das gelieferte
-Volumen für die Sitzungsziele von 1 und insgesamt 20 m³. Freie Lieferungen
-bleiben danach möglich.
+`EarthVoxelGrid` sampelt das feste Dichtefeld. `VoxelData` führt entfernte Materialzellen und aktualisierte Dichten. Der Surface-Net-Mesher von `VoxelMoon` berechnet gemeinsame Randvertices aus benachbarten Samples. Ein Schnitt markiert die betroffenen Chunks einschließlich ihrer Randnachbarn. Pro Frame werden bis zu vier Meshes und Collider aktualisiert. Vollständige Wiederherstellung aktualisiert die betroffene Geometrie vor dem Versetzen der Spieler.
 
-Die Regolith-Textur wiederholt sich auf ebenen Terrainflächen alle zwei Meter.
-Der Chunk-Mesher projiziert planetlokale Meter auf die beiden Achsen der jeweiligen
-Zellfläche, auch an frisch gebohrten Wänden. Container und Elevator nutzen die UVs
-ihrer Modelle. Die folgenden Abschnitte beschreiben die Zielarchitektur.
+`DrillStroke` bucht jeden abgebauten Kubikmeter in genau einen Rucksack. `EarthFreight` verbucht den Frachtwert bei Ankunft im Orbit und führt exportierte Volumen pro Material. `ExpeditionCrew` betreibt dieselben Regeln im Solo- und Hostbetrieb. Ein Gast sendet Bewegungszustand und Bedienabsicht. Der Host prüft den Zielstrahl, die Werkzeugreichweite, den Takt und die freie Kapazität. Eine geordnete TCP-Verbindung überträgt beim Beitritt einen vollständigen Snapshot und danach die neu entfernten Zellen. Beim Laden wechselt die Weltgeneration für ausstehende Netzwerkbefehle.
+
+Der komprimierte Spielstand enthält Weltkennung mit Seed, Generatorversion und Einstellungen, Zelldeltas, zwei Crewplätze und die Liftbuchhaltung einschließlich Flugphase. Die Vollprüfung vergleicht die entfernte Menge jedes Materials mit den Rucksäcken, Behältern und ausgelieferten Mengen. Geschrieben wird zuerst in eine temporäre Datei, danach atomar mit Sicherung des Vorgängers.
+
+## Weitere Entwicklungsrichtung
 
 ## Systemgrenzen
 
@@ -61,6 +58,6 @@ Saves nicht still verändern. Determinismus, Chunk-Ränder, Masse/Volumen und Ro
 
 ## Szenen und Zusammenarbeit
 
-Bestehende SampleScene bleibt als Template erhalten. Künftig getrennte Bootstrap-, Planet-
+Die Erd-Szene ist die einzige vorhandene Spiel- und Build-Szene. Künftig getrennte Bootstrap-, Planet-
 und Test-Szenen, modulare Player/Tool/Container-Prefabs. Szeneigentümer pro Aufgabe abstimmen.
-Kein Mehrspieler-Netzwerkumfang beschlossen; zwei Entwickler bedeuten kein Multiplayer-Spiel.
+Der aktuelle Netzwerkumfang sind ein Host und ein beitretender Gast.

@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: StarterEarth
   m_EditorClassIdentifier: PlanetHarvest.Runtime::PlanetHarvest.Planets.EarthPlanetSettings
   planetId: earth-starter
+  chunkCells: 16
   seed: 7219
-  radius: 32
+  radius: 48
   hillHeight: 5
   hillFrequency: 3
   tunnelRadius: 2.8

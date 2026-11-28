@@ -4,6 +4,7 @@ using NUnit.Framework;
 using PlanetHarvest.Logistics;
 using PlanetHarvest.Mining;
 using PlanetHarvest.Progression;
+using PlanetHarvest.Player;
 using PlanetHarvest.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,7 +17,7 @@ namespace PlanetHarvest.Tests
     public class EarthEquipmentTests
     {
         [UnityTest]
-        public IEnumerator SelectedPickMinesOneCellAndResourceSlotDoesNotMine()
+        public IEnumerator SelectedDrillCutsSoilAndResourceSlotDoesNotMine()
         {
             var pad = InputSystem.AddDevice<Gamepad>();
             try
@@ -34,7 +35,8 @@ namespace PlanetHarvest.Tests
                 Assert.AreEqual(0, mining.Inventory.Amount);
                 yield return Press(pad, GamepadButton.LeftShoulder);
                 yield return Press(pad, GamepadButton.West);
-                Assert.AreEqual(HarvestInventory.CubicMetre, mining.Inventory.AmountOf(MaterialId.Soil));
+                Assert.GreaterOrEqual(mining.Inventory.AmountOf(MaterialId.Soil), HarvestInventory.CubicMetre);
+                Assert.Greater(mining.GetComponentInChildren<ParticleSystem>().particleCount, 0);
             }
             finally { InputSystem.RemoveDevice(pad); }
         }
@@ -50,7 +52,7 @@ namespace PlanetHarvest.Tests
                 var mining = Object.FindFirstObjectByType<EarthMining>();
                 var dock = mining.Elevator;
                 var soil = dock.GetComponentsInChildren<EarthCargoBin>().Single(b => b.Material == MaterialId.Soil);
-                Assert.IsTrue(mining.Equipment.transform.GetChild(0).gameObject.activeSelf);
+                Assert.IsTrue(mining.Equipment.ShowingTool);
                 Assert.AreEqual(1, mining.GetComponentsInChildren<Canvas>().Length);
                 var glyphs = mining.GetComponentsInChildren<EquipmentGlyph>();
                 Assert.AreEqual(4, glyphs.Length);
@@ -58,7 +60,7 @@ namespace PlanetHarvest.Tests
                 Assert.IsTrue(mining.Inventory.TryAdd(MaterialId.Soil, EarthFreight.SoilGoal * HarvestInventory.CubicMetre));
                 yield return Press(pad, GamepadButton.RightShoulder);
                 Assert.AreEqual(1, mining.Equipment.Slot);
-                Assert.IsFalse(mining.Equipment.transform.GetChild(0).gameObject.activeSelf);
+                Assert.IsFalse(mining.Equipment.ShowingTool);
                 Assert.IsTrue(mining.Equipment.transform.GetChild(1).gameObject.activeSelf);
 
                 // Approach the labelled front of the soil bin. The normal player ray must hit it.
@@ -89,6 +91,80 @@ namespace PlanetHarvest.Tests
                 Assert.Less(Vector3.Distance(start,soil.transform.position), .01f);
             }
             finally { InputSystem.RemoveDevice(pad); }
+        }
+
+        [UnityTest]
+        public IEnumerator InventoryAndWorkshopUsePlayerInputAndPurchasedDrillMinesContinuously()
+        {
+#if UNITY_EDITOR
+            bool previousBackground = Application.runInBackground;
+            var previousBehavior = InputSystem.settings.backgroundBehavior;
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            var previousRouting = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+#endif
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var pad = InputSystem.AddDevice<Gamepad>();
+            try
+            {
+                yield return SceneManager.LoadSceneAsync(EarthTraversalTests.ScenePath);
+                yield return new WaitForSeconds(.5f);
+                var mining = Object.FindFirstObjectByType<EarthMining>();
+                yield return PressKey(keyboard, Key.I);
+                Assert.AreEqual(FieldMenu.Inventory, mining.Menu);
+                Assert.IsFalse(mining.GetComponent<RadialPlayer>().Captured);
+                Assert.IsFalse(mining.ChooseTool(MiningTool.Drill));
+                yield return PressKey(keyboard, Key.Escape);
+                Assert.AreEqual(FieldMenu.Closed, mining.Menu);
+                Assert.IsTrue(mining.GetComponent<RadialPlayer>().Captured);
+                var freight = mining.Elevator.Freight;
+                foreach (var type in new[] { MaterialId.Soil, MaterialId.Stone })
+                {
+                    long load = freight.Container(type).Capacity;
+                    Assert.IsTrue(mining.Inventory.TryAdd(type, load));
+                    freight.Load(mining.Inventory,type);
+                    freight.Advance(EarthFreight.LegSeconds * 2);
+                }
+                var station = mining.Workshop.transform;
+                var body = mining.GetComponent<Rigidbody>();
+                body.position = station.position - station.forward * 2.8f + station.up * 1.2f;
+                body.rotation = Quaternion.LookRotation(station.forward, station.up);
+                body.linearVelocity = Vector3.zero;
+                yield return new WaitForSeconds(.2f);
+                Assert.IsTrue(mining.AtWorkshop);
+                yield return Press(pad, GamepadButton.North);
+                Assert.AreEqual(FieldMenu.Workshop, mining.Menu);
+                yield return PressKey(keyboard, Key.Digit3);
+                Assert.AreEqual(MiningTool.Drill, mining.Equipment.Tools.Active);
+                Assert.AreEqual(0, freight.Credits);
+                yield return PressKey(keyboard, Key.Escape);
+                InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = Vector2.down });
+                yield return new WaitForSeconds(.8f);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.West));
+                yield return new WaitForSeconds(.65f);
+                Assert.GreaterOrEqual(mining.Inventory.Amount, HarvestInventory.CubicMetre * 2);
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+#if UNITY_EDITOR
+                InputSystem.settings.editorInputBehaviorInPlayMode = previousRouting;
+                InputSystem.settings.backgroundBehavior = previousBehavior;
+                Application.runInBackground = previousBackground;
+#endif
+                InputSystem.RemoveDevice(pad);
+            }
+        }
+
+        private static IEnumerator PressKey(Keyboard keyboard, Key key)
+        {
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
+            yield return null;
+            yield return null;
+            Assert.IsTrue(keyboard[key].isPressed, $"Synthetic {key} was not delivered. Device enabled={keyboard.enabled}, focus={Application.isFocused}.");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return null;
         }
 
         private static IEnumerator Press(Gamepad pad, GamepadButton button)

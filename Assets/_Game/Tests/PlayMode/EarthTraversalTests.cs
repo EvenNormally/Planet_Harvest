@@ -58,7 +58,7 @@ namespace PlanetHarvest.Tests
             yield return SceneManager.LoadSceneAsync(ScenePath);
             var planet = Object.FindFirstObjectByType<VoxelMoon>();
             var inventory = Object.FindFirstObjectByType<EarthMining>().Inventory;
-            var types = new[] { MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre };
+            var types = new[] { MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre, MaterialId.CopperOre, MaterialId.Quartz };
             for (int submesh = 0; submesh < types.Length; submesh++)
             {
                 bool mined = false;
@@ -86,7 +86,7 @@ namespace PlanetHarvest.Tests
                 Assert.IsTrue(mined, types[submesh].ToString());
             }
             Assert.IsFalse(planet.TryMine(inventory, Vector3Int.one * planet.Data.Radius, out _));
-            Assert.AreEqual(3 * HarvestInventory.CubicMetre, inventory.Amount);
+            Assert.AreEqual(types.Length * HarvestInventory.CubicMetre, inventory.Amount);
         }
 
         [UnityTest]

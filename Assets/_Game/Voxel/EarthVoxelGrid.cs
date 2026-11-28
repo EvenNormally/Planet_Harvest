@@ -8,6 +8,7 @@ namespace PlanetHarvest.Voxel
     // exactly the same eight cell centres to locate their shared surface-net vertex.
     internal sealed class EarthVoxelGrid
     {
+        private readonly EarthPlanetField field;
         private readonly int extent, side;
         private readonly float[] densities;
         private readonly byte[] materials;
@@ -15,6 +16,7 @@ namespace PlanetHarvest.Voxel
 
         public EarthVoxelGrid(EarthPlanetField field)
         {
+            this.field = field;
             extent = field.Extent;
             side = 2 * extent;
             densities = new float[side * side * side];
@@ -42,13 +44,18 @@ namespace PlanetHarvest.Voxel
         public MaterialId MaterialAt(Vector3Int p) => Contains(p) ? (MaterialId)materials[Index(p)] : MaterialId.None;
         private float Density(Vector3Int p) => Contains(p) ? densities[Index(p)] : -1;
 
-        public bool HasBoundary(Vector3Int key)
+        public void SetRemoved(Vector3Int cell, bool removed)
         {
-            Vector3Int start = key * VoxelData.ChunkSize - Vector3Int.one;
+            densities[Index(cell)] = removed ? -.75f : field.Density((Vector3)cell + Vector3.one * .5f);
+        }
+
+        public bool HasBoundary(Vector3Int key, int chunkSize)
+        {
+            Vector3Int start = key * chunkSize - Vector3Int.one;
             bool first = MaterialAt(start) != MaterialId.None;
-            for (int x = 0; x < VoxelData.ChunkSize + 2; x++)
-            for (int y = 0; y < VoxelData.ChunkSize + 2; y++)
-            for (int z = 0; z < VoxelData.ChunkSize + 2; z++)
+            for (int x = 0; x < chunkSize + 2; x++)
+            for (int y = 0; y < chunkSize + 2; y++)
+            for (int z = 0; z < chunkSize + 2; z++)
                 if ((MaterialAt(start + new Vector3Int(x, y, z)) != MaterialId.None) != first)
                     return true;
             return false;
@@ -74,6 +81,8 @@ namespace PlanetHarvest.Voxel
         {
             float to = Density(cell + axis);
             if ((from > 0) == (to > 0)) return;
+            if (from < 0 && MaterialAt(cell) != MaterialId.None) to = Mathf.Min(to, 1);
+            if (to < 0 && MaterialAt(cell + axis) != MaterialId.None) from = Mathf.Min(from, 1);
             float t = Mathf.Clamp(from / (from - to), 0.02f, 0.98f);
             sum += (Vector3)cell + Vector3.one * 0.5f + (Vector3)axis * t;
             crossings++;

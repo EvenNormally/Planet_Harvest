@@ -20,10 +20,12 @@ namespace PlanetHarvest.Player
         private readonly RaycastHit[] groundHits = new RaycastHit[8];
         private Vector2 movement;
         private float pitch, pendingYaw;
-        private bool jumpQueued;
+        private bool jumpQueued, menuOpen;
+        private int menuChangedFrame = -1;
         public bool IsGrounded { get; private set; }
         public bool Captured { get; private set; }
         public bool MinePressed => Captured && attack.WasPressedThisFrame();
+        public bool MineHeld => Captured && attack.IsPressed();
         public bool InteractPressed => Captured && interact.WasPressedThisFrame();
 
         private void Awake()
@@ -79,9 +81,19 @@ namespace PlanetHarvest.Player
             Cursor.visible = !capture;
         }
 
+        public void SetMenuOpen(bool open)
+        {
+            menuOpen = open;
+            menuChangedFrame = Time.frameCount;
+            movement = Vector2.zero;
+            pendingYaw = 0;
+            jumpQueued = false;
+            SetCapture(!open);
+        }
+
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (!menuOpen && menuChangedFrame != Time.frameCount && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
                 SetCapture(!Captured);
             if (Captured)
             {

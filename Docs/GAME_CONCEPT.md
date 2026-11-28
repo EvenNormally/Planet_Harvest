@@ -1,6 +1,6 @@
 # Planet Harvest Spielkonzept
 
-**Hinweis vom 24. November 2026:** Die aktuelle Entscheidung für einen erdähnlichen Startplaneten, drei Materialien, Höhlen und Crafting ohne Geld steht in [CURRENT_GAME_DIRECTION.md](CURRENT_GAME_DIRECTION.md). Widersprechende Mond-, Credit- und Verkaufsabschnitte weiter unten sind historische Planung und keine neuen Implementierungsaufträge.
+**Historischer Entwurf.** Seit dem 27. November 2026 gilt der [Entwicklungsstand des ersten Prototyps](CURRENT_GAME_DIRECTION.md). Die folgenden Abschnitte dokumentieren frühere Planungen.
 
 Stand: 24. November 2026. Dieses Konzept entwickelt die bereitgestellte Ideenskizze zu einer programmierbaren Spielschleife. Werte mit dem Zusatz **Startwert** sind Vorschläge für Prototypen und werden nach Spieltests angepasst. Die Umsetzungsschritte stehen in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
@@ -88,7 +88,7 @@ Der Stil soll auch beim Bohren erhalten bleiben: frische Schnittflächen und Chu
 
 Ein Save enthält Schema-Version, Planet-ID und Seed mit Generatorversion, Terrainänderungen, Spielerposition und Blickrichtung, Puffer, Container, versendete IDs, Credits, Upgrades und Freischaltungen. Material wird über stabile IDs gespeichert, nicht über Szeneobjekt-Referenzen. Schreiben erfolgt atomisch mit Sicherung. Unbekannte Versionen geben einen klaren Fehler oder nutzen eine getestete Migration. Eine veränderte Generatorversion darf alte Terrain-Deltas nicht still auf eine andere Grundwelt anwenden.
 
-Reine Regeln für Volumen, Transfer, Buchung und Upgrade-Kosten sollen ohne Unity-Szene testbar sein. Die bestehende SampleScene und Template-Assets bleiben Referenz; neue Gameplay-Szenen und Prefabs liegen unter `Assets/_Game/`. Systemgrenzen und technische Regeln stehen in [ARCHITECTURE.md](../ARCHITECTURE.md).
+Reine Regeln für Volumen, Transfer, Buchung und Upgrade-Kosten sollen ohne Unity-Szene testbar sein. Die aktuelle Erd-Spielszene und neue Gameplay-Szenen und Prefabs liegen unter `Assets/_Game/`. Systemgrenzen und technische Regeln stehen in [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## 10 Noch zu entscheiden
 

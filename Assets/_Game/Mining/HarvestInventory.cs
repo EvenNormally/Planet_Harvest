@@ -8,11 +8,11 @@ namespace PlanetHarvest.Mining
     public sealed class HarvestInventory
     {
         public const long CubicMetre = 1000000;
-        private readonly long[] amounts = new long[(int)MaterialId.IronOre + 1];
+        private readonly long[] amounts = new long[(int)MaterialId.Quartz + 1];
         private readonly MaterialId? acceptedMaterial;
         internal bool InTransit { get; set; }
-        public long Amount => amounts[(int)MaterialId.Regolith] + amounts[(int)MaterialId.Stone]
-            + amounts[(int)MaterialId.Soil] + amounts[(int)MaterialId.IronOre];
+        public long Amount { get; private set; }
+        public int Revision { get; private set; }
         public long Capacity { get; }
         public long Free => Capacity - Amount;
 
@@ -26,8 +26,7 @@ namespace PlanetHarvest.Mining
         }
 
         private static bool IsResource(MaterialId material) =>
-            material == MaterialId.Regolith || material == MaterialId.Stone
-            || material == MaterialId.Soil || material == MaterialId.IronOre;
+            material >= MaterialId.Regolith && material <= MaterialId.Quartz;
 
         public long AmountOf(MaterialId material) => IsResource(material) ? amounts[(int)material] : 0;
 
@@ -41,6 +40,8 @@ namespace PlanetHarvest.Mining
             if (!IsResource(resource) || (acceptedMaterial.HasValue && acceptedMaterial != resource)) return false;
             if (!terrain.TryRemove(cell, out material)) return false;
             amounts[(int)material] += volume;
+            Amount += volume;
+            Revision++;
             return true;
         }
 
@@ -49,6 +50,8 @@ namespace PlanetHarvest.Mining
             if (InTransit || !IsResource(material) || (acceptedMaterial.HasValue && acceptedMaterial != material)
                 || amount <= 0 || amount > Free) return false;
             amounts[(int)material] += amount;
+            Amount += amount;
+            Revision++;
             return true;
         }
 
@@ -58,9 +61,16 @@ namespace PlanetHarvest.Mining
             long moved = Math.Min(AmountOf(material), destination.Free);
             if (!destination.TryAdd(material, moved)) return 0;
             amounts[(int)material] -= moved;
+            Amount -= moved;
+            Revision++;
             return moved;
         }
 
-        internal void Empty() => Array.Clear(amounts, 0, amounts.Length);
+        internal void Empty()
+        {
+            Array.Clear(amounts, 0, amounts.Length);
+            Amount = 0;
+            Revision++;
+        }
     }
 }

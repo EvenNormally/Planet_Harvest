@@ -9,7 +9,7 @@ foreach ($required in @('Assets','Packages/manifest.json','Packages/packages-loc
 foreach ($file in $files) {
     if ($file -match '^(Library|Temp|Obj|Logs|Builds?|UserSettings|TestResults|\.codex)/') { $failures.Add("Generated/local file: $file") }
     if ($file -match '(^|/)(\.env($|\.)|id_rsa$)|\.(pem|key)$') { $failures.Add("Potential credential file: $file") }
-    if ($file.StartsWith('Assets/') -and !$file.EndsWith('.meta') -and !$file.EndsWith('/.gitkeep')) {
+    if ((Test-Path -LiteralPath $file) -and $file.StartsWith('Assets/') -and !$file.EndsWith('.meta') -and !$file.EndsWith('/.gitkeep')) {
         if (!(Test-Path -LiteralPath ($file + '.meta'))) { $failures.Add("Missing meta: $file") }
     }
 }

@@ -13,8 +13,11 @@ namespace PlanetHarvest.Voxel
         private readonly HashSet<Vector3Int> removed = new HashSet<Vector3Int>();
         private readonly int initialCount;
         private readonly EarthVoxelGrid earth;
+        public int InitialCount => initialCount;
+        public IEnumerable<Vector3Int> Removed => removed;
         public int SolidCount => initialCount - removed.Count;
         public int Radius { get; }
+        public int CellsPerChunk { get; } = ChunkSize;
 
         public VoxelData(int radius)
         {
@@ -28,8 +31,10 @@ namespace PlanetHarvest.Voxel
             }
         }
 
-        public VoxelData(EarthPlanetField field)
+        public VoxelData(EarthPlanetField field, int cellsPerChunk = 16)
         {
+            if (cellsPerChunk < 1) throw new ArgumentOutOfRangeException(nameof(cellsPerChunk));
+            CellsPerChunk = cellsPerChunk;
             earth = new EarthVoxelGrid(field);
             Radius = field.Extent;
             initialCount = earth.SolidCount;
@@ -39,9 +44,11 @@ namespace PlanetHarvest.Voxel
             ? earth.MaterialAt(cell) != MaterialId.None
             : ((Vector3)cell + Vector3.one * 0.5f).sqrMagnitude <= Radius * Radius;
         public bool IsSolid(Vector3Int cell) => IsOriginalSolid(cell) && !removed.Contains(cell);
-        public MaterialId MaterialAt(Vector3Int cell)
+        public MaterialId MaterialAt(Vector3Int cell) => removed.Contains(cell) ? MaterialId.None : OriginalMaterial(cell);
+
+        internal MaterialId OriginalMaterial(Vector3Int cell)
         {
-            if (!IsSolid(cell)) return MaterialId.None;
+            if (!IsOriginalSolid(cell)) return MaterialId.None;
             if (earth != null) return earth.MaterialAt(cell);
             float stoneRadius = Radius - 1;
             return ((Vector3)cell + Vector3.one * 0.5f).sqrMagnitude <= stoneRadius * stoneRadius
@@ -53,7 +60,13 @@ namespace PlanetHarvest.Voxel
             material = MaterialAt(cell);
             if (material == MaterialId.None) return false;
             removed.Add(cell);
+            earth?.SetRemoved(cell, true);
             return true;
+        }
+
+        internal void RestoreCell(Vector3Int cell)
+        {
+            if (removed.Remove(cell)) earth?.SetRemoved(cell, false);
         }
 
         public Vector3 RoundSurfaceVertex(Vector3 vertex)
@@ -75,7 +88,7 @@ namespace PlanetHarvest.Voxel
 
         public bool IsSurfaceChunk(Vector3Int key)
         {
-            if (earth != null) return earth.HasBoundary(key);
+            if (earth != null) return earth.HasBoundary(key, CellsPerChunk);
             Vector3 min = key * ChunkSize;
             Vector3 max = min + Vector3.one * ChunkSize;
             var bounds = new Bounds((min + max) * 0.5f, Vector3.one * (ChunkSize + 2));
@@ -85,9 +98,11 @@ namespace PlanetHarvest.Voxel
             return closest <= Radius * Radius && farthest.sqrMagnitude >= (Radius - 1) * (Radius - 1);
         }
 
-        public static Vector3Int ChunkOf(Vector3Int cell) => new Vector3Int(
-            Mathf.FloorToInt((float)cell.x / ChunkSize),
-            Mathf.FloorToInt((float)cell.y / ChunkSize),
-            Mathf.FloorToInt((float)cell.z / ChunkSize));
+        internal Vector3Int ChunkKey(Vector3Int cell) => ChunkOf(cell, CellsPerChunk);
+
+        public static Vector3Int ChunkOf(Vector3Int cell, int chunkSize = ChunkSize) => new Vector3Int(
+            Mathf.FloorToInt((float)cell.x / chunkSize),
+            Mathf.FloorToInt((float)cell.y / chunkSize),
+            Mathf.FloorToInt((float)cell.z / chunkSize));
     }
 }

@@ -6,16 +6,19 @@ namespace PlanetHarvest.Planets
     // Planet-local metres. Positive density is solid. The field has no mutable random state.
     public sealed class EarthPlanetField
     {
-        public const int GeneratorVersion = 1;
+        public const int GeneratorVersion = 2;
         private readonly int seed;
         private readonly float radius, amplitude, frequency, tunnelRadius, soilDepth, oreDepth, oreChance;
         private readonly Vector3 phases;
         private readonly Vector3[] passage;
         private readonly Vector3 chamber, branchEnd, chamberVein;
         public int Extent => Mathf.CeilToInt(radius + amplitude + 1);
-        public Vector3 SpawnDirection => new Vector3(0, 1, -0.22f).normalized;
+        public Vector3 SpawnDirection => new Vector3(0, radius, -7).normalized;
+        public static readonly Vector3 LakeDirection = new Vector3(-0.34f, 1, 0.16f).normalized;
+        public float WaterRadius => radius - 1.2f;
+        public float Radius => radius;
 
-        public EarthPlanetField(int seed, int radius = 32, float amplitude = 5, float frequency = 3,
+        public EarthPlanetField(int seed, int radius = 48, float amplitude = 5, float frequency = 3,
             float tunnelRadius = 2.8f, float caveDepth = 10, float soilDepth = 2,
             float oreDepth = 7, float oreChance = 0.28f)
         {
@@ -54,7 +57,9 @@ namespace PlanetHarvest.Planets
             float hills = Mathf.Sin(p.y * 2 + p.z + phases.y) * Mathf.Cos(2 * p.x - p.y);
             // Ease relief around the approach to keep the spawn and first ramp walkable.
             float relief = Mathf.SmoothStep(0.12f, 1, Mathf.Clamp01((1 - direction.normalized.y) * 2));
-            return radius + amplitude * relief * (0.65f * broad + 0.35f * hills);
+            float shoreDistance = (direction.normalized - LakeDirection).magnitude * radius;
+            float basin = 3.6f * (1 - Mathf.SmoothStep(0, 1, shoreDistance / 8));
+            return radius + amplitude * relief * (0.65f * broad + 0.35f * hills) - basin;
         }
 
         public float Depth(Vector3 p) => SurfaceRadius(p) - p.magnitude;
@@ -83,6 +88,9 @@ namespace PlanetHarvest.Planets
         {
             float depth = Depth(p);
             if (depth <= soilDepth) return MaterialId.Soil;
+            // Accessible seams in the gallery lead prospectors towards the deeper chamber.
+            if ((p - (passage[4] - Vector3.right * tunnelRadius)).sqrMagnitude < 5) return MaterialId.CopperOre;
+            if ((p - (chamber + Vector3.right * (tunnelRadius + 1.4f))).sqrMagnitude < 5) return MaterialId.Quartz;
             if (depth < oreDepth) return MaterialId.Stone;
             if ((p - chamberVein).sqrMagnitude < 2.4f) return MaterialId.IronOre;
             Vector3Int key = Vector3Int.FloorToInt(p / 6);
@@ -91,7 +99,10 @@ namespace PlanetHarvest.Planets
                 UnitHash(key.x, key.y, key.z, 2), UnitHash(key.x, key.y, key.z, 3));
             Vector3 delta = p - ((Vector3)(key * 6) + Vector3.one * 2 + offset * 2);
             delta.y *= 1.35f;
-            return delta.sqrMagnitude < 2.5f ? MaterialId.IronOre : MaterialId.Stone;
+            if (delta.sqrMagnitude >= 3.2f) return MaterialId.Stone;
+            float mineral = UnitHash(key.x, key.y, key.z, 4);
+            if (mineral < 0.36f) return MaterialId.CopperOre;
+            return mineral < 0.60f ? MaterialId.Quartz : MaterialId.IronOre;
         }
 
         private static float SegmentDistanceSquared(Vector3 p, Vector3 a, Vector3 b)

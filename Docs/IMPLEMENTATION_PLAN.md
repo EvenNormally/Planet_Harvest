@@ -1,6 +1,6 @@
 # Planet Harvest Implementierungsplan für Codex
 
-**Hinweis vom 24. November 2026:** Die nummerierten Aufgaben unten beruhen teilweise auf der alten Mond- und Credit-Richtung. Für neue Aufgaben gilt zuerst [CURRENT_GAME_DIRECTION.md](CURRENT_GAME_DIRECTION.md). Insbesondere die Credit-, Verkaufs- und Kaufaufgaben dürfen nicht als aktueller Auftrag übernommen werden.
+**Historischer Entwurf.** Seit dem 27. November 2026 gilt der [Entwicklungsstand des ersten Prototyps](CURRENT_GAME_DIRECTION.md). Die folgenden Abschnitte dokumentieren frühere Planungen.
 
 Stand: 24. November 2026. Dieser Plan zerlegt das [Spielkonzept](GAME_CONCEPT.md) in kleine, überprüfbare Aufgaben. Die Aufgaben 01 bis 03 und Teile der späteren Aufgaben sind im Testplaneten bereits prototypisch vorhanden. Die Nummern beschreiben weiterhin die fachliche Reihenfolge und müssen vor jedem neuen Auftrag mit dem tatsächlichen Projektstand abgeglichen werden; sie sind keine Zusage über Dauer oder fertige Architektur.
 

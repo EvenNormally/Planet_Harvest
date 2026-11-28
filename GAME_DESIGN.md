@@ -1,6 +1,6 @@
 # Planet Harvest – Spielidee
 
-**Aktuelle Richtung vom 24. November 2026:** Zuerst ein erdähnlicher Planet mit Hügeln, Höhlen sowie Erde, Stein und seltenem Eisenerz in der Tiefe. Fortschritt entsteht später durch Crafting aus Rohstoffen, ohne Geldsystem. Der bisherige Mond und Elevator sind technische Prüfstände. Details: [Docs/CURRENT_GAME_DIRECTION.md](Docs/CURRENT_GAME_DIRECTION.md). Die ältere Skizze darunter dokumentiert den vorherigen Plan.
+**Historischer Entwurf.** Seit dem 27. November 2026 gilt der [Entwicklungsstand des ersten Prototyps](Docs/CURRENT_GAME_DIRECTION.md). Die folgenden Abschnitte dokumentieren frühere Planungen.
 
 Die ausführliche Fassung mit Spielregeln, erstem spielbaren Umfang und offenen Entscheidungen steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Einzelne Codex-Aufträge stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Dieses Dokument bleibt die kurze Übersicht.
 

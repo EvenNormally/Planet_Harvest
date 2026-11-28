@@ -26,7 +26,7 @@
 6. Hub > Projects > Add > Add project from disk: geklonten Ordner mit Assets,
    Packages und ProjectSettings auswählen. Kein neues Projekt erstellen.
 7. Mit exakt dieser Editorversion öffnen, Paketimport abwarten. File > Build Profiles:
-   Windows, x86_64. SampleScene prüfen; Console ohne Compilerfehler.
+   Windows, x86_64. PlanetHarvest_Earth prüfen; Console ohne Compilerfehler.
 8. Codex installieren/anmelden und den geklonten Repositoryordner als Projekt öffnen.
    Offizielles Unity-Plugin im Pluginverzeichnis installieren. Alternativ:
    `codex plugin marketplace add Unity-Technologies/unity-agent-plugin`,

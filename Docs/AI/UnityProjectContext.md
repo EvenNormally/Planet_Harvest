@@ -1,5 +1,15 @@
 # Unity Project Context
 
+## Spielstand vom 28. November 2026
+
+Der technische Prototyp läuft in der Erd-Szene. Er nutzt drei Bohrprofile, zwei persönliche Rucksäcke, den Space Elevator, versionierte Snapshots und direkten Host/Gast-Koop. Verantwortliche Komponenten und Datenfluss stehen in [ARCHITECTURE.md](../../ARCHITECTURE.md). Einstieg und Steuerung stehen in [README.md](../../README.md).
+
+## Früherer Szenenstand vom 26. November 2026
+
+Einzige vorhandene Spiel- und Build-Szene: `Assets/_Game/Scenes/PlanetHarvest_Earth.unity`.
+Die älteren Test-, Template- und TextMesh-Pro-Beispielszenen wurden entfernt.
+Die folgenden Angaben zum Testplaneten und Setup beschreiben frühere Projektstände.
+
 ## Verifizierter aktueller Stand: 2026-11-06
 
 Projektroot: `C:/Users/henry/Downloads/Planet_Harvest/Planet_Harvest`.
