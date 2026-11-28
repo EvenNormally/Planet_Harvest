@@ -10,7 +10,9 @@ namespace PlanetHarvest.Mining
         Barrel = 1,
         OreHopper = 2,
         MagneticBin = 3,
-        PrismBox = 4
+        PrismBox = 4,
+        GlassSphere = 5,
+        OrganicTank = 6
     }
 
     /// <summary>Immutable runtime copy of a <see cref="MaterialDefinition"/>.</summary>

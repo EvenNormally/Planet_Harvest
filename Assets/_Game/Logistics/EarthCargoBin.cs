@@ -46,6 +46,12 @@ namespace PlanetHarvest.Logistics
             Art.FieldProps.Part(transform, rock ? "Fassring" : "Presswanne", cradle, new Vector3(0,.73f,0),
                 rock ? new Vector3(1.24f,.08f,1.24f) : new Vector3(1.43f,.12f,1.27f),
                 new Color(.24f,.33f,.36f), hardware);
+            if (kind == ContainerKind.GlassSphere)
+                Art.FieldProps.Part(transform, "Glaskugel", PrimitiveType.Sphere, new Vector3(0,1.15f,0), Vector3.one * 1.15f,
+                    new Color(.7f,.88f,1f), hardware);
+            else if (kind == ContainerKind.OrganicTank)
+                Art.FieldProps.Part(transform, "Organischer Glastank", PrimitiveType.Cylinder, new Vector3(0,1.15f,0),
+                    new Vector3(1.05f,.45f,1.05f), new Color(.55f,.85f,.45f), hardware);
             cargoHeap = Art.FieldProps.Part(transform, rock ? "Steinhaufen" : "Pressladung",
                 rock ? PrimitiveType.Sphere : PrimitiveType.Cube, Vector3.zero, Vector3.one, baseColor, hardware).transform;
             SetFill(0);

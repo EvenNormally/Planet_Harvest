@@ -53,6 +53,8 @@ namespace PlanetHarvest.Core
         internal static bool ValidPose(Vector3 p, Quaternion q) => p.sqrMagnitude < 200 * 200 &&
             Quaternion.Dot(q, q) > .99f && Quaternion.Dot(q, q) < 1.01f;
 
+        internal void PadMaterials() => amounts = ExpeditionSnapshot.Pad(amounts);
+
         public void Apply(HarvestInventory pack, MiningTools tools, ToolUpgrades upgrades)
         {
             pack.Empty();
@@ -74,8 +76,12 @@ namespace PlanetHarvest.Core
         public BeamNetworkSnapshot logistics;
         /// <summary>Drill robot; absent in older saves, which means no robot.</summary>
         public Machines.RobotSnapshot robot;
+        /// <summary>Lake and pump; absent before version 4, which means a full lake and no pump.</summary>
+        public WaterSnapshot water;
+        /// <summary>Keys of harvested plants; absent before version 4.</summary>
+        public Vector3Int[] plants;
 
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         /// <summary>Migrates older save layouts in place to <see cref="CurrentVersion"/>.</summary>
         public void Upgrade(FreightProgram program)
@@ -91,17 +97,53 @@ namespace PlanetHarvest.Core
                 logistics = null;
                 version = 3;
             }
+            if (version == 3)
+            {
+                // Water and biomass extend the per-material arrays; older arrays end after quartz.
+                host?.PadMaterials();
+                guest?.PadMaterials();
+                if (freight != null)
+                {
+                    freight.deliveredByMaterial = Pad(freight.deliveredByMaterial);
+                    freight.loadsByMaterial = Pad(freight.loadsByMaterial);
+                }
+                if (logistics?.chain != null) logistics.chain.hopper = Pad(logistics.chain.hopper);
+                if (robot != null) robot.hopper = Pad(robot.hopper);
+                water = null;
+                plants = null;
+                version = 4;
+            }
         }
 
-        public void Validate(VoxelPlanet moon, FreightProgram program, UpgradeCatalog upgrades, BeamSettings beams,
-            Machines.RobotSettings robots, bool full)
+        internal static long[] Pad(long[] values)
         {
+            if (values == null || values.Length >= HarvestInventory.MaterialSlots) return values;
+            var padded = new long[HarvestInventory.MaterialSlots];
+            Array.Copy(values, padded, values.Length);
+            return padded;
+        }
+
+        public void Validate(VoxelPlanet moon, ExpeditionRules rules, bool full)
+        {
+            var program = rules.Program;
+            var upgrades = rules.Upgrades;
+            var beams = rules.Beams;
+            var robots = rules.Robots;
+            long lake = rules.Water.LakeCubicMetres * HarvestInventory.CubicMetre;
             if (version != CurrentVersion || world != moon.WorldKey || host == null || guest == null || freight == null)
                 throw new InvalidDataException("Spielstand oder Planetenversion passt nicht.");
             if (logistics != null && logistics.nodes == null && logistics.chain == null) logistics = null;
             BeamNetwork.Validate(logistics, beams, moon.Data.Radius);
             if (robot != null && robot.hopper == null && !robot.placed) robot = null;
             Machines.DrillRobot.Validate(robot, robots.HopperCubicMetres * HarvestInventory.CubicMetre, robots.StrokeSeconds);
+            WaterPump.Validate(water, lake, rules.Water.TankCubicMetres * HarvestInventory.CubicMetre, rules.Water.PumpSeconds);
+            plants ??= Array.Empty<Vector3Int>();
+            if (plants.Length > 0)
+            {
+                var distinct = new HashSet<Vector3Int>();
+                foreach (var plant in plants)
+                    if (!rules.IsPlant(plant) || !distinct.Add(plant)) throw new InvalidDataException("Ungültige Pflanzenernte.");
+            }
             host.Validate(upgrades);
             guest.Validate(upgrades);
             int slots = HarvestInventory.MaterialSlots;
@@ -143,8 +185,11 @@ namespace PlanetHarvest.Core
             {
                 int id = (int)spec.Id;
                 long booked = host.amounts[id] + guest.amounts[id] + freight.loadsByMaterial[id] + freight.deliveredByMaterial[id]
-                    + BeamChain.Holding(logistics?.chain, spec.Id) + Machines.DrillRobot.Holding(robot, spec.Id);
-                if (booked != quantities[id]) throw new InvalidDataException("Materialbilanz stimmt nicht.");
+                    + BeamChain.Holding(logistics?.chain, spec.Id) + Machines.DrillRobot.Holding(robot, spec.Id)
+                    + (spec.Id == MaterialId.Water ? water?.tank ?? 0 : 0);
+                long extracted = quantities[id] + (spec.Id == MaterialId.Water ? WaterPump.Drawn(water, lake) : 0)
+                    + (spec.Id == MaterialId.Biomass ? plants.Length * (long)rules.Water.BiomassPerPlant * HarvestInventory.CubicMetre : 0);
+                if (booked != extracted) throw new InvalidDataException("Materialbilanz stimmt nicht.");
             }
         }
 

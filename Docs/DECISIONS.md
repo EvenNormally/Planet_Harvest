@@ -21,4 +21,10 @@ umgesetzt wurde; Änderungen bitte hier vermerken.
 | 2026-11-28 | Bohrroboter | Schutzzone: kein Arbeitsbereich näher als 11 m an Lift oder Werkbank, zusätzlich schützt jeder Schnitt die Fundamente. | Doppelte Sicherung gegen Zerstörung der Basis. |
 | 2026-11-28 | Bohrroboter | E am Roboter übergibt zuerst den Trichterinhalt, sonst Start/Stopp; steht ein Sammeltrichter in 7 m Nähe, entlädt der Roboter automatisch dorthin. | Keine zusätzliche Taste; Roboter und Traktorstrahl ergänzen sich. |
 | 2026-11-28 | Bohrroboter | Energie entfällt im Slice. | Kurzkonzept sah Batterie vor; zurückgestellt, um Umfang zu halten. |
+| 2026-11-28 | Wasser | Neue MaterialIds Wasser = 7 und Biomasse = 8 (angehängt). Spielstand Version 4 verlängert alle Materialarrays. | Bestehende IDs bleiben stabil. |
+| 2026-11-28 | Wasser | Der Bergsee ist ein Reservoir mit 60 m³ ohne Fluidsimulation; die Oberfläche sinkt sichtbar mit dem Restvolumen. | Kapitel 6 verlangt leerbare Reservoire, keine Simulation. |
+| 2026-11-28 | Wasser | Feste Pumpstation am Seeufer, Kauf mit E für 60 Credits nach dem Landevertrag, 1 m³ je 1,5 s in einen 10-m³-Glastank; Übergabe per E oder automatisch an einen nahen Sammeltrichter. | Kein weiteres Platzierungssystem nötig. |
+| 2026-11-28 | Wasser | Lift-Container: Glaskugel (10 m³, 3 Credits/m³) für Wasser, organischer Glastank (6 m³, 4 Credits/m³) für Biomasse. | Containertypen laut Kapitel 5. |
+| 2026-11-28 | Biomasse | Jede Kiefer gibt beim Ernten mit dem Bohrer einmalig 1 m³ Biomasse; Bäume ohne Boden verschwinden ohne Ertrag. | Endliche, nachvollziehbare Menge; keine Materialerzeugung. |
+| 2026-11-28 | Fortschritt | Wasser und Biomasse zählen nicht zur Orbitquote des festen Planeten. | Quote ist laut Richtung relativ zum festen Planetenkörper definiert. |
 | 2026-11-28 | QA | Profiling als PlayMode-Test, Bericht nur mit Umgebungsvariable nach `Docs/Reports/`. | Normale Testläufe verändern das Repository nicht. |

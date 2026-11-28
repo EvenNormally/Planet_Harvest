@@ -217,7 +217,8 @@ namespace PlanetHarvest.UI
             var state = (mining.Equipment.Slot, mining.Target, mining.Bin ? mining.Bin.Material : MaterialId.None,
                 mining.AtWorkshop, pack.Revision, cargo.Revision, mining.Equipment.Tools.Active, mining.Menu,
                 mining.Equipment.Upgrades.Revision,
-                mining.AimedRobot ? mining.AimedRobot.Robot.Revision : mining.AtHopper ? -2 - mining.Beams.Chain.Revision : -1);
+                mining.AimedRobot ? mining.AimedRobot.Robot.Revision : mining.AtHopper ? -2 - mining.Beams.Chain.Revision
+                    : mining.AtPump ? -100000 - mining.Pump.Pump.Revision : mining.AimingAtPlant ? -3 : -1);
             if (initialized && last.Equals(state)) return;
             last = state;
             initialized = true;
@@ -279,6 +280,15 @@ namespace PlanetHarvest.UI
                 if (i > 0) quantities[i].text = (pack.AmountOf(Materials[i]) / unit).ToString();
             }
             if (last.shop) hint.text = "E   Werkzeugstation öffnen";
+            else if (mining.AimingAtPlant)
+                hint.text = pack.Free < unit ? "Rucksack voll" : "LMB   Pflanze ernten (Biomasse)";
+            else if (mining.AtPump)
+            {
+                var pump = mining.Pump.Pump;
+                hint.text = !pump.Built ? $"E   Pumpe bauen ({mining.Pump.Settings.PumpPrice} Credits)"
+                    : pump.Tank.Amount > 0 ? $"E   {pump.Tank.Amount / unit} m³ Wasser übernehmen"
+                    : pump.State == Logistics.PumpState.Dry ? "Der See ist leer" : "E   Pumpe starten/stoppen";
+            }
             else if (mining.AimedRobot)
             {
                 var robot = mining.AimedRobot.Robot;

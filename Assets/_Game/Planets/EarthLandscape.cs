@@ -12,6 +12,13 @@ namespace PlanetHarvest.Planets
         private Material sky, water, foliage;
         private Mesh treeMesh, lakeMesh;
         private readonly Dictionary<Vector3Int, GameObject> trees = new Dictionary<Vector3Int, GameObject>();
+        private readonly HashSet<Vector3Int> harvested = new HashSet<Vector3Int>();
+        public Transform LakeSurface { get; private set; }
+        public int PlantCount => trees.Count;
+        public int HarvestRevision { get; private set; }
+        public IEnumerable<Vector3Int> Harvested => harvested;
+        public int HarvestedCount => harvested.Count;
+        public IEnumerable<Vector3Int> PlantKeys => trees.Keys;
 
         public void Populate(VoxelPlanet moon, Camera camera)
         {
@@ -28,7 +35,7 @@ namespace PlanetHarvest.Planets
             backdrop.material = sky;
             view.clearFlags = CameraClearFlags.Skybox;
             lakeMesh = Lake(moon.Earth);
-            Model("Bergsee", lakeMesh, water);
+            LakeSurface = Model("Bergsee", lakeMesh, water).transform;
             treeMesh = Pine();
             Physics.SyncTransforms();
             for (int i = 0; i < 200; i++)
@@ -72,6 +79,49 @@ namespace PlanetHarvest.Planets
             trees.Add(cell, tree);
         }
 
+        public bool IsPlant(Vector3Int key) => trees.ContainsKey(key);
+
+        /// <summary>Finds the nearest standing plant whose trunk passes the view ray within reach.</summary>
+        public bool TryFindPlant(Vector3 origin, Vector3 direction, float reach, out Vector3Int key)
+        {
+            key = default;
+            float best = reach;
+            foreach (var pair in trees)
+            {
+                var tree = pair.Value.transform;
+                if (!pair.Value.activeSelf) continue;
+                float scale = tree.localScale.x;
+                for (int i = 0; i < 3; i++)
+                {
+                    Vector3 point = tree.position + tree.up * (.6f + i * 1.1f) * scale;
+                    float along = Vector3.Dot(point - origin, direction);
+                    if (along <= 0 || along >= best) continue;
+                    if ((point - (origin + direction * along)).sqrMagnitude > (.75f * scale) * (.75f * scale)) continue;
+                    best = along;
+                    key = pair.Key;
+                }
+            }
+            return best < reach;
+        }
+
+        /// <summary>Removes a standing plant for good. Returns false if it does not exist or is gone.</summary>
+        public bool Harvest(Vector3Int key)
+        {
+            if (!trees.TryGetValue(key, out var tree) || !tree.activeSelf || !harvested.Add(key)) return false;
+            tree.SetActive(false);
+            HarvestRevision++;
+            return true;
+        }
+
+        /// <summary>Applies the harvested set of a save; other plants stand again where their ground exists.</summary>
+        public void ApplyHarvested(Vector3Int[] keys)
+        {
+            harvested.Clear();
+            if (keys != null) foreach (var key in keys) if (trees.ContainsKey(key)) harvested.Add(key);
+            foreach (var pair in trees) pair.Value.SetActive(!harvested.Contains(pair.Key) && planet.Data.IsSolid(pair.Key));
+            HarvestRevision++;
+        }
+
         private void RemoveUnsupportedTree(Vector3Int cell)
         {
             if (!trees.TryGetValue(cell, out var tree)) return;
@@ -80,7 +130,7 @@ namespace PlanetHarvest.Planets
 
         private void RestoreTree(Vector3Int cell)
         {
-            if (trees.TryGetValue(cell, out var tree)) tree.SetActive(true);
+            if (trees.TryGetValue(cell, out var tree) && !harvested.Contains(cell)) tree.SetActive(true);
         }
 
         private GameObject Model(string label, Mesh mesh, Material finish)

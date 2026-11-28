@@ -31,6 +31,13 @@ namespace PlanetHarvest.Mining
         public BeamNetwork Beams { get; private set; }
         public Machines.DrillRobotUnit Robot { get; private set; }
         public Machines.DrillRobotUnit AimedRobot { get; private set; }
+        public PumpStation Pump { get; private set; }
+        public bool AtPump { get; private set; }
+        public bool AimingAtPlant { get; private set; }
+        public EarthLandscape Landscape => landscape;
+        private ExpeditionRules rules;
+        public ExpeditionRules Rules => rules ??= new ExpeditionRules(Elevator.Freight.Program, Equipment.UpgradeCatalog,
+            Elevator.BeamSettings, Elevator.RobotSettings, Elevator.WaterSettings, landscape.IsPlant);
         public bool AtHopper { get; private set; }
         /// <summary>Feedback of the last build attempt for the HUD.</summary>
         public string BuildMessage { get; private set; } = string.Empty;
@@ -58,7 +65,7 @@ namespace PlanetHarvest.Mining
             Vector3 p = planet.transform.TransformPoint((Vector3)cell + Vector3.one * .5f);
             Vector3 dock = Elevator.transform.InverseTransformPoint(p);
             Vector3 shop = Workshop.transform.InverseTransformPoint(p);
-            return (dock.x > -3.5f && dock.x < 8.6f && Mathf.Abs(dock.z) < 2 && Mathf.Abs(dock.y) < 2) ||
+            return (dock.x > -3.5f && dock.x < 12.4f && Mathf.Abs(dock.z) < 2 && Mathf.Abs(dock.y) < 2) ||
                 (Mathf.Abs(shop.x) < 1.4f && Mathf.Abs(shop.z) < 1 && Mathf.Abs(shop.y) < 1.5f);
         }
         public MaterialId Target { get; private set; }
@@ -91,6 +98,9 @@ namespace PlanetHarvest.Mining
             landscape = new GameObject("Landschaft").AddComponent<EarthLandscape>();
             landscape.transform.SetParent(planet.transform.parent, false);
             landscape.Populate(planet, view);
+            Pump = new GameObject("Pumpstation").AddComponent<PumpStation>();
+            Pump.transform.SetParent(planet.transform.parent, false);
+            Pump.Initialize(planet, Elevator.Freight, Beams, Elevator.WaterSettings, landscape.LakeSurface);
             debris = new GameObject("Abbausplitter").AddComponent<MiningDebris>();
             debris.transform.SetParent(transform, false);
             debris.Prepare(Equipment.GetComponentInChildren<MeshFilter>().sharedMesh);
@@ -106,6 +116,7 @@ namespace PlanetHarvest.Mining
             if (Elevator) Destroy(Elevator.gameObject);
             if (Beams) Destroy(Beams.gameObject);
             if (Robot) Destroy(Robot.gameObject);
+            if (Pump) Destroy(Pump.gameObject);
             if (landscape) Destroy(landscape.gameObject);
         }
 
@@ -145,6 +156,16 @@ namespace PlanetHarvest.Mining
         internal bool NearBase(Vector3 world) =>
             Vector3.Distance(world, Elevator.transform.position) < Elevator.RobotSettings.ProtectedRadius ||
             Vector3.Distance(world, Workshop.transform.position) < Elevator.RobotSettings.ProtectedRadius;
+
+        private long BiomassVolume => Elevator.WaterSettings.BiomassPerPlant * HarvestInventory.CubicMetre;
+
+        /// <summary>Takes a plant for good and books its biomass. Host side for both crew members.</summary>
+        public bool HarvestPlant(HarvestInventory pack, Vector3Int plant)
+        {
+            if (pack.Free < BiomassVolume || !landscape.Harvest(plant)) return false;
+            pack.TryAdd(MaterialId.Biomass, BiomassVolume);
+            return true;
+        }
 
         private void PlaceRobot()
         {
@@ -186,6 +207,8 @@ namespace PlanetHarvest.Mining
             AtWorkshop = false;
             AtHopper = false;
             AimedRobot = null;
+            AtPump = false;
+            AimingAtPlant = false;
             if (Menu != FieldMenu.Closed)
             {
                 if (hud && hud.EditingAddress && keys?.escapeKey.wasPressedThisFrame != true) return;
@@ -212,8 +235,35 @@ namespace PlanetHarvest.Mining
             if (keys?.jKey.wasPressedThisFrame == true || pad?.dpad.left.wasPressedThisFrame == true) PlaceRobot();
             var tool = MiningTools.Spec(Equipment.Tools.Active);
             float reach = Equipment.Slot == 0 ? tool.Reach : InteractReach;
-            if (!Physics.Raycast(view.transform.position, view.transform.forward, out var hit,
-                reach, ~0, QueryTriggerInteraction.Ignore)) return;
+            bool hitSomething = Physics.Raycast(view.transform.position, view.transform.forward, out var hit,
+                reach, ~0, QueryTriggerInteraction.Ignore);
+            if (Equipment.Slot == 0 && landscape.TryFindPlant(view.transform.position, view.transform.forward,
+                hitSomething ? hit.distance + .3f : reach, out var plant))
+            {
+                AimingAtPlant = true;
+                bool chop = tool.RepeatSeconds > 0 ? player.MineHeld && Time.time >= nextStrike : player.MinePressed;
+                if (chop && Inventory.Free >= BiomassVolume)
+                {
+                    nextStrike = Time.time + Equipment.Upgrades.RepeatSeconds(tool.RepeatSeconds);
+                    if (Crew.IsGuest) Crew.Request("plant", 0, plant);
+                    else HarvestPlant(Inventory, plant);
+                    Equipment.Strike();
+                }
+                return;
+            }
+            if (!hitSomething) return;
+            if (hit.collider.TryGetComponent(out PumpStation pump))
+            {
+                if (hit.distance > InteractReach) return;
+                AtPump = true;
+                if (player.InteractPressed)
+                {
+                    if (Crew.IsGuest) Crew.Request("pump", 0);
+                    else BuildMessage = pump.Use(Inventory);
+                    Equipment.Select(Equipment.Slot, Inventory);
+                }
+                return;
+            }
             if (hit.collider.TryGetComponent(out ToolStation station))
             {
                 AtWorkshop = station == Workshop && hit.distance <= InteractReach;

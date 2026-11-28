@@ -26,8 +26,14 @@ namespace PlanetHarvest.Progression
         /// <summary>Share of the original solid planet that reached orbit, 0..1.</summary>
         public double OrbitFraction => InitialVolume <= 0 ? 0 : System.Math.Min(1, (double)InOrbit / InitialVolume);
 
-        public static PlanetProgress Measure(int initialSolidCells, EarthFreight freight, long carried) =>
-            new PlanetProgress(initialSolidCells * HarvestInventory.CubicMetre, freight.TotalDelivered,
+        /// <summary>Water and biomass are delivered too but do not count towards the solid-planet quota.</summary>
+        public static PlanetProgress Measure(int initialSolidCells, EarthFreight freight, long carried)
+        {
+            long terrain = 0;
+            foreach (var material in freight.Program.Materials)
+                if (material.Id.IsTerrain()) terrain += freight.Delivered(material.Id);
+            return new PlanetProgress(initialSolidCells * HarvestInventory.CubicMetre, terrain,
                 freight.InFlight, freight.AtDock, carried);
+        }
     }
 }

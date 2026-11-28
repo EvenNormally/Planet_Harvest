@@ -26,10 +26,10 @@ namespace PlanetHarvest.Mining
         }
 
         /// <summary>Number of per-material slots; arrays indexed by <see cref="MaterialId"/> use this length.</summary>
-        public const int MaterialSlots = (int)MaterialId.Quartz + 1;
+        public const int MaterialSlots = (int)MaterialId.Biomass + 1;
 
         public static bool IsResource(MaterialId material) =>
-            material >= MaterialId.Regolith && material <= MaterialId.Quartz;
+            material >= MaterialId.Regolith && material <= MaterialId.Biomass;
 
         public long AmountOf(MaterialId material) => IsResource(material) ? amounts[(int)material] : 0;
 
