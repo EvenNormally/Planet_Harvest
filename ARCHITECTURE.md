@@ -8,6 +8,31 @@
 
 Der komprimierte Spielstand enthält Weltkennung mit Seed, Generatorversion und Einstellungen, Zelldeltas, zwei Crewplätze und die Liftbuchhaltung einschließlich Flugphase. Die Vollprüfung vergleicht die entfernte Menge jedes Materials mit den Rucksäcken, Behältern und ausgelieferten Mengen. Geschrieben wird zuerst in eine temporäre Datei, danach atomar mit Sicherung des Vorgängers.
 
+## Materialien, Elevator-Aufträge und Planetenfortschritt
+
+`MaterialDefinition` (ScriptableObject, `ScriptableObjects/Materials/`) beschreibt je Material Anzeigename,
+Dichte in kg/m³, Credits pro m³, Containervolumen, Containertyp und Farbe. Schlüssel bleibt der
+`MaterialId`-Enumwert; seine Zahlenwerte sind Save- und Netzformat und werden nie geändert.
+`ElevatorContractSet` (`ScriptableObjects/ElevatorContracts_Akt1.asset`) listet die lieferbaren Materialien
+(Reihenfolge = Container am Lift) und die geordneten Aufträge mit Mindestmengen mehrerer Materialien und
+einmaligem Abschlussbonus. Der Elevator-Prefab referenziert das Asset und erzeugt daraus ein reines
+`FreightProgram` ohne Unity-Objektbezüge.
+
+`ContractLedger` führt die im Orbit angekommenen Volumen pro Material. Aufträge werden der Reihe nach aus
+diesen Summen bedient: ein Auftrag verbraucht genau seine Mindestmengen, Überschuss bleibt für spätere
+Aufträge stehen. Lieferungen zwischen Stufen sind damit erlaubt, zahlen Volumen-Credits und gehen weder
+verloren noch werden sie doppelt gezählt. Der Bonus eines Auftrags wird genau einmal gezahlt; der Spielstand
+speichert dafür die Zahl bereits vergüteter Aufträge. Volumen-Credits werden kumulativ und ganzzahlig
+(Tausendstel-Credits) abgerundet, sodass Teillieferungen denselben Betrag wie volle Container ergeben.
+
+`PlanetProgress` misst die globale Quote als Orbitvolumen relativ zum ursprünglichen festen Planetenvolumen
+und weist Kabine (im Flug), Lift-Container und Rucksäcke getrennt aus. Das HUD zeigt Auftrag, Teilmengen,
+Orbitquote und die getrennten Mengen.
+
+Spielstand Version 2 speichert Liefer- und Containermengen indiziert nach `MaterialId`. Version-1-Stände
+(Arrays pro alter Auftragsposition Erde, Stein, Eisen, Kupfer, Quarz) werden beim Laden migriert; bereits
+erfüllte Aufträge gelten als vergütet, damit Laden keine Credits erzeugt.
+
 ## Weitere Entwicklungsrichtung
 
 ## Systemgrenzen

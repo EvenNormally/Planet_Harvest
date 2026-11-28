@@ -51,7 +51,7 @@ namespace PlanetHarvest.Tests
                 Assert.AreEqual(checkpoint.progress, cargo.LegProgress);
                 Assert.AreEqual(0, cargo.Credits);
                 cargo.Advance(10);
-                long paid = checkpoint.loads[1] * EarthFreight.Order(1).Credits / cargo.Container(MaterialId.Stone).Capacity;
+                long paid = cargo.Program.Material(MaterialId.Stone).CreditsFor(checkpoint.loadsByMaterial[(int)MaterialId.Stone]);
                 Assert.AreEqual(paid, cargo.Credits);
                 cargo.Advance(10);
                 Assert.AreEqual(paid, cargo.Credits);

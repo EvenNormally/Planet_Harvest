@@ -17,23 +17,23 @@ namespace PlanetHarvest.Logistics
             hitBox = GetComponent<BoxCollider>();
         }
 
-        internal void ConfigureOre(MaterialId type, Vector3 position, Color tint)
+        internal void ConfigureOre(MaterialSpec spec, Vector3 position)
         {
-            material = type;
+            material = spec.Id;
             rest = transform.localPosition = position;
-            name = type.Name() + "container";
+            name = spec.Name + "container";
             var label = GetComponentInChildren<TMPro.TextMeshPro>();
-            label.text = type.Name().ToUpperInvariant();
+            label.text = spec.Name.ToUpperInvariant();
             var face = transform.Find("Frachtkörper").GetComponent<Renderer>();
             var colors = new MaterialPropertyBlock();
-            colors.SetColor("_BaseColor", tint);
+            colors.SetColor("_BaseColor", spec.ContainerColor);
             face.SetPropertyBlock(colors);
         }
 
         private Transform contents, cargoHeap;
         private float lastFill = -1;
 
-        internal void BuildGauge(Material hardware)
+        internal void BuildGauge(Material hardware, ContainerKind kind)
         {
             var baseColor = material == MaterialId.Soil ? new Color(.46f,.28f,.13f) :
                 material == MaterialId.Stone ? new Color(.58f,.61f,.65f) : new Color(.78f,.55f,.36f);
@@ -41,7 +41,7 @@ namespace PlanetHarvest.Logistics
                 new Vector3(1.16f,.29f,.045f), new Color(.09f,.15f,.18f), hardware);
             contents = Art.FieldProps.Part(transform, "Ladestand", PrimitiveType.Cube, Vector3.zero,
                 Vector3.one, baseColor, hardware).transform;
-            bool rock = material == MaterialId.Stone;
+            bool rock = kind == ContainerKind.Barrel;
             var cradle = rock ? PrimitiveType.Cylinder : PrimitiveType.Cube;
             Art.FieldProps.Part(transform, rock ? "Fassring" : "Presswanne", cradle, new Vector3(0,.73f,0),
                 rock ? new Vector3(1.24f,.08f,1.24f) : new Vector3(1.43f,.12f,1.27f),

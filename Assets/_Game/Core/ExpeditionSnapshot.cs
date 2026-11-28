@@ -18,7 +18,7 @@ namespace PlanetHarvest.Core
         public Quaternion rotation = Quaternion.identity;
         public MiningTool active;
         public int owned = 1;
-        public long[] amounts = new long[(int)MaterialId.Quartz + 1];
+        public long[] amounts = new long[HarvestInventory.MaterialSlots];
         public DrillProfile profile;
 
         public static MinerSnapshot Capture(HarvestInventory pack, MiningTools tools, Vector3 position,
@@ -32,7 +32,7 @@ namespace PlanetHarvest.Core
 
         public void Validate()
         {
-            if (amounts == null || amounts.Length != (int)MaterialId.Quartz + 1 || amounts[0] != 0 ||
+            if (amounts == null || amounts.Length != HarvestInventory.MaterialSlots || amounts[0] != 0 ||
                 amounts[(int)MaterialId.Regolith] != 0 || owned < 1 || owned > 7 || (owned & 1) == 0 ||
                 (uint)active >= MiningTools.Count || (owned & (1 << (int)active)) == 0 || (uint)profile > 2 ||
                 !ValidPose(position, rotation)) throw new InvalidDataException("Ungültiger Crewzustand.");
@@ -64,31 +64,47 @@ namespace PlanetHarvest.Core
         public MinerSnapshot host, guest;
         public FreightSnapshot freight;
 
-        public void Validate(VoxelPlanet moon, bool full)
+        public const int CurrentVersion = 2;
+
+        /// <summary>Migrates older save layouts in place to <see cref="CurrentVersion"/>.</summary>
+        public void Upgrade(FreightProgram program)
         {
-            if (version != 1 || world != moon.WorldKey || host == null || guest == null || freight == null)
+            if (version != 1) return;
+            if (freight == null) throw new InvalidDataException("Liftzustand fehlt.");
+            freight.UpgradeFromVersionOne(program);
+            version = CurrentVersion;
+        }
+
+        public void Validate(VoxelPlanet moon, FreightProgram program, bool full)
+        {
+            if (version != CurrentVersion || world != moon.WorldKey || host == null || guest == null || freight == null)
                 throw new InvalidDataException("Spielstand oder Planetenversion passt nicht.");
             host.Validate();
             guest.Validate();
-            int count = EarthFreight.LevelCount;
-            if (freight.loads?.Length != count || freight.delivered?.Length != count || freight.credits < 0 ||
-                !(freight.progress >= 0 && freight.progress <= 1))
+            int slots = HarvestInventory.MaterialSlots;
+            if (freight.loadsByMaterial?.Length != slots || freight.deliveredByMaterial?.Length != slots || freight.credits < 0 ||
+                !(freight.progress >= 0 && freight.progress <= 1) || freight.rewardedContracts < 0 ||
+                (freight.flying != MaterialId.None && !program.Contains(freight.flying)))
                 throw new InvalidDataException("Ungültiger Liftzustand.");
             bool validFlight = freight.flying == MaterialId.None && !freight.returning && freight.progress == 0;
-            for (int i = 0; i < count; i++)
+            long planetVolume = moon.Data.InitialCount * HarvestInventory.CubicMetre;
+            for (int slot = 0; slot < slots; slot++)
             {
-                var order = EarthFreight.Order(i);
-                long capacity = order.Volume * HarvestInventory.CubicMetre;
-                if (freight.loads[i] < 0 || freight.loads[i] > capacity || freight.delivered[i] < 0 ||
-                    freight.delivered[i] > moon.Data.InitialCount * HarvestInventory.CubicMetre)
+                var material = (MaterialId)slot;
+                long capacity = program.Contains(material) ? program.Material(material).ContainerCapacity : 0;
+                if (freight.loadsByMaterial[slot] < 0 || freight.loadsByMaterial[slot] > capacity ||
+                    freight.deliveredByMaterial[slot] < 0 || freight.deliveredByMaterial[slot] > planetVolume ||
+                    (capacity == 0 && freight.deliveredByMaterial[slot] != 0))
                     throw new InvalidDataException("Ungültiger Frachtbestand.");
-                if (freight.flying == order.Material)
-                    validFlight = freight.returning ? freight.loads[i] == 0 : freight.loads[i] > 0;
+                if (freight.flying == material && material != MaterialId.None)
+                    validFlight = freight.returning ? freight.loadsByMaterial[slot] == 0 : freight.loadsByMaterial[slot] > 0;
             }
+            if (freight.rewardedContracts > ContractLedger.CountCompleted(program, freight.deliveredByMaterial))
+                throw new InvalidDataException("Ungültiger Auftragsstand.");
             if (!validFlight || (full && removed == null)) throw new InvalidDataException("Unvollständiger Weltstand.");
             if (removed == null) return;
             if (removed.Length > moon.Data.InitialCount) throw new InvalidDataException("Ungültige Terrainmenge.");
-            var quantities = full ? new long[(int)MaterialId.Quartz + 1] : null;
+            var quantities = full ? new long[slots] : null;
             var unique = full ? new HashSet<Vector3Int>() : null;
             foreach (var cell in removed)
             {
@@ -100,10 +116,10 @@ namespace PlanetHarvest.Core
                 quantities[(int)moon.Data.OriginalMaterial(cell)] += HarvestInventory.CubicMetre;
             }
             if (!full) return;
-            for (int i = 0; i < count; i++)
+            foreach (var spec in program.Materials)
             {
-                int id = (int)EarthFreight.Order(i).Material;
-                long booked = host.amounts[id] + guest.amounts[id] + freight.loads[i] + freight.delivered[i];
+                int id = (int)spec.Id;
+                long booked = host.amounts[id] + guest.amounts[id] + freight.loadsByMaterial[id] + freight.deliveredByMaterial[id];
                 if (booked != quantities[id]) throw new InvalidDataException("Materialbilanz stimmt nicht.");
             }
         }

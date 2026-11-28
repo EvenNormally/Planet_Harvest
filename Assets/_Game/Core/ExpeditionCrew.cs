@@ -146,7 +146,7 @@ namespace PlanetHarvest.Core
         {
             return new ExpeditionSnapshot
             {
-                version = 1, world = miner.Planet.WorldKey,
+                version = ExpeditionSnapshot.CurrentVersion, world = miner.Planet.WorldKey,
                 removed = full ? new List<Vector3Int>(miner.Planet.Data.Removed).ToArray() : pendingCells.ToArray(),
                 host = MinerSnapshot.Capture(miner.Inventory, miner.Equipment.Tools, body.position, body.rotation, miner.Profile),
                 guest = MinerSnapshot.Capture(otherPack, otherTools, otherPosition, otherRotation, otherProfile),
@@ -156,7 +156,9 @@ namespace PlanetHarvest.Core
 
         private void Apply(ExpeditionSnapshot state, bool full, bool guest)
         {
-            state.Validate(miner.Planet, full);
+            var program = miner.Elevator.Freight.Program;
+            state.Upgrade(program);
+            state.Validate(miner.Planet, program, full);
             if (full || state.removed.Length > 0) miner.Planet.ApplyCells(state.removed, full);
             var local = guest ? state.guest : state.host;
             var remote = guest ? state.host : state.guest;
@@ -186,7 +188,7 @@ namespace PlanetHarvest.Core
             try
             {
                 var state = Capture(true);
-                state.Validate(miner.Planet, true);
+                state.Validate(miner.Planet, miner.Elevator.Freight.Program, true);
                 ExpeditionSnapshot.Write(path, state);
                 Status = "Expedition gespeichert";
             }

@@ -57,7 +57,7 @@ namespace PlanetHarvest.Tests
                 var glyphs = mining.GetComponentsInChildren<EquipmentGlyph>();
                 Assert.AreEqual(4, glyphs.Length);
                 foreach (var glyph in glyphs) Assert.IsNotNull(glyph.GetComponent<CanvasRenderer>());
-                Assert.IsTrue(mining.Inventory.TryAdd(MaterialId.Soil, EarthFreight.SoilGoal * HarvestInventory.CubicMetre));
+                Assert.IsTrue(mining.Inventory.TryAdd(MaterialId.Soil, dock.Freight.Container(MaterialId.Soil).Capacity));
                 yield return Press(pad, GamepadButton.RightShoulder);
                 Assert.AreEqual(1, mining.Equipment.Slot);
                 Assert.IsFalse(mining.Equipment.ShowingTool);
@@ -86,7 +86,8 @@ namespace PlanetHarvest.Tests
                 Assert.AreEqual(0,mining.Inventory.Amount);
                 Assert.IsFalse(mining.Equipment.transform.GetChild(1).gameObject.activeSelf);
                 yield return new WaitForSeconds(EarthFreight.LegSeconds * 2 + .2f);
-                Assert.AreEqual(1,dock.Freight.CompletedLevels);
+                Assert.AreEqual(dock.Freight.Container(MaterialId.Soil).Capacity, dock.Freight.Delivered(MaterialId.Soil));
+                Assert.AreEqual(0,dock.Freight.CompletedContracts, "Soil alone does not fulfil the landing contract.");
                 Assert.IsTrue(soil.GetComponent<Collider>().enabled);
                 Assert.Less(Vector3.Distance(start,soil.transform.position), .01f);
             }
@@ -126,6 +127,8 @@ namespace PlanetHarvest.Tests
                     freight.Load(mining.Inventory,type);
                     freight.Advance(EarthFreight.LegSeconds * 2);
                 }
+                Assert.AreEqual(1, freight.CompletedContracts);
+                long earned = freight.Credits;
                 var station = mining.Workshop.transform;
                 var body = mining.GetComponent<Rigidbody>();
                 body.position = station.position - station.forward * 2.8f + station.up * 1.2f;
@@ -137,7 +140,7 @@ namespace PlanetHarvest.Tests
                 Assert.AreEqual(FieldMenu.Workshop, mining.Menu);
                 yield return PressKey(keyboard, Key.Digit3);
                 Assert.AreEqual(MiningTool.Drill, mining.Equipment.Tools.Active);
-                Assert.AreEqual(0, freight.Credits);
+                Assert.AreEqual(earned - MiningTools.Spec(MiningTool.Drill).Price, freight.Credits);
                 yield return PressKey(keyboard, Key.Escape);
                 InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = Vector2.down });
                 yield return new WaitForSeconds(.8f);

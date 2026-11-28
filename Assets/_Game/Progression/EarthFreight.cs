@@ -3,100 +3,116 @@ using PlanetHarvest.Mining;
 
 namespace PlanetHarvest.Progression
 {
-    public readonly struct FreightOrder
-    {
-        public readonly MaterialId Material;
-        public readonly string Title;
-        public readonly int Volume;
-        public readonly int Credits;
-
-        public FreightOrder(MaterialId material, string title, int volume, int credits)
-        {
-            Material = material;
-            Title = title;
-            Volume = volume;
-            Credits = credits;
-        }
-    }
-
     [Serializable]
     public sealed class FreightSnapshot
     {
+        /// <summary>Material order of the version 1 save format, which stored arrays per order index.</summary>
+        private static readonly MaterialId[] VersionOneOrder =
+            { MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre, MaterialId.CopperOre, MaterialId.Quartz };
+
         public long credits;
+        /// <summary>Version 1 only: per order index. Empty from version 2 on.</summary>
         public long[] delivered, loads;
+        /// <summary>Version 2: indexed by <see cref="MaterialId"/>, length <see cref="HarvestInventory.MaterialSlots"/>.</summary>
+        public long[] deliveredByMaterial, loadsByMaterial;
+        public int rewardedContracts;
         public MaterialId flying;
         public bool returning;
         public float progress;
+
+        /// <summary>
+        /// Converts the version 1 layout. Contracts already satisfied by the old totals count as rewarded:
+        /// the old save never paid completion bonuses, and loading must not mint credits retroactively.
+        /// </summary>
+        public void UpgradeFromVersionOne(FreightProgram program)
+        {
+            if (delivered == null || loads == null || delivered.Length != VersionOneOrder.Length || loads.Length != VersionOneOrder.Length)
+                throw new System.IO.InvalidDataException("Ungültiger Liftzustand (Version 1).");
+            deliveredByMaterial = new long[HarvestInventory.MaterialSlots];
+            loadsByMaterial = new long[HarvestInventory.MaterialSlots];
+            for (int i = 0; i < VersionOneOrder.Length; i++)
+            {
+                if (delivered[i] < 0 || loads[i] < 0) throw new System.IO.InvalidDataException("Ungültiger Frachtbestand.");
+                deliveredByMaterial[(int)VersionOneOrder[i]] = delivered[i];
+                loadsByMaterial[(int)VersionOneOrder[i]] = loads[i];
+            }
+            delivered = loads = null;
+            rewardedContracts = ContractLedger.CountCompleted(program, deliveredByMaterial);
+        }
     }
 
+    /// <summary>
+    /// Elevator logistics: one container per deliverable material, a single lift cabin and the orbit ledger.
+    /// Credits are paid per delivered volume on arrival plus a one-time bonus per completed contract.
+    /// </summary>
     public sealed class EarthFreight
     {
-        public const int SoilGoal = 20;
-        public const int StoneGoal = 12;
         public const float LegSeconds = 3;
-        private const long Unit = HarvestInventory.CubicMetre;
-        private static readonly FreightOrder[] Orders =
-        {
-            new FreightOrder(MaterialId.Soil, "Bodenprobe", SoilGoal, 20),
-            new FreightOrder(MaterialId.Stone, "Gesteinslieferung", StoneGoal, 30),
-            new FreightOrder(MaterialId.IronOre, "Tragwerk", 4, 45),
-            new FreightOrder(MaterialId.CopperOre, "Stromleitungen", 5, 60),
-            new FreightOrder(MaterialId.Quartz, "Orbitalsensoren", 3, 80)
-        };
 
-        private readonly HarvestInventory[] bins = new HarvestInventory[Orders.Length];
-        private readonly long[] delivered = new long[Orders.Length];
-        public long SoilDelivered => delivered[0];
-        public long StoneDelivered => delivered[1];
+        private readonly HarvestInventory[] bins;
+        public FreightProgram Program { get; }
+        public ContractLedger Contracts { get; }
         public int Revision { get; private set; }
         public long Credits { get; private set; }
-        public int CompletedLevels { get; private set; }
-        public static int LevelCount => Orders.Length;
-        public static FreightOrder Order(int index) => Orders[index];
+        public int CompletedContracts => Contracts.Completed;
         public MaterialId Flying { get; private set; }
         public bool Returning { get; private set; }
         public float LegProgress { get; private set; }
 
-        public EarthFreight()
+        public EarthFreight(FreightProgram program)
         {
-            for (int i = 0; i < Orders.Length; i++)
-                bins[i] = new HarvestInventory(Orders[i].Volume * Unit, Orders[i].Material);
+            Program = program ?? throw new ArgumentNullException(nameof(program));
+            Contracts = new ContractLedger(program);
+            bins = new HarvestInventory[program.Materials.Count];
+            for (int i = 0; i < bins.Length; i++)
+                bins[i] = new HarvestInventory(program.Materials[i].ContainerCapacity, program.Materials[i].Id);
         }
 
-        private static int Index(MaterialId type)
+        private int Index(MaterialId type)
         {
-            for (int i = 0; i < Orders.Length; i++)
-                if (Orders[i].Material == type) return i;
-            throw new ArgumentOutOfRangeException(nameof(type));
+            int index = Program.IndexOf(type);
+            if (index < 0) throw new ArgumentOutOfRangeException(nameof(type));
+            return index;
         }
 
         public HarvestInventory Container(MaterialId type) => bins[Index(type)];
 
-        public long Delivered(MaterialId material) => delivered[Index(material)];
-        public long TotalDelivered
+        public long Delivered(MaterialId material) => Contracts.Delivered(material);
+        public long TotalDelivered => Contracts.TotalDelivered;
+
+        /// <summary>Volume currently travelling up in the cabin (not yet in orbit).</summary>
+        public long InFlight => Flying != MaterialId.None && !Returning ? Container(Flying).Amount : 0;
+
+        /// <summary>Volume waiting in containers at the elevator, excluding the cabin load.</summary>
+        public long AtDock
         {
-            get { long sum = 0; foreach (var amount in delivered) sum += amount; return sum; }
+            get { long sum = 0; foreach (var bin in bins) sum += bin.Amount; return sum - InFlight; }
         }
 
         public FreightSnapshot Capture()
         {
-            var state = new FreightSnapshot { credits = Credits, flying = Flying, returning = Returning,
-                progress = LegProgress, delivered = (long[])delivered.Clone(), loads = new long[bins.Length] };
-            for (int i = 0; i < bins.Length; i++) state.loads[i] = bins[i].Amount;
+            var state = new FreightSnapshot
+            {
+                credits = Credits, flying = Flying, returning = Returning, progress = LegProgress,
+                deliveredByMaterial = Contracts.CaptureDelivered(), loadsByMaterial = new long[HarvestInventory.MaterialSlots],
+                rewardedContracts = Contracts.Rewarded
+            };
+            for (int i = 0; i < bins.Length; i++) state.loadsByMaterial[(int)Program.Materials[i].Id] = bins[i].Amount;
             return state;
         }
 
         public void Restore(FreightSnapshot state)
         {
-            CompletedLevels = 0;
+            if (state?.loadsByMaterial == null || state.loadsByMaterial.Length != HarvestInventory.MaterialSlots)
+                throw new ArgumentException("Ungültiger Liftzustand.", nameof(state));
+            Contracts.Restore(state.deliveredByMaterial, state.rewardedContracts);
             for (int i = 0; i < bins.Length; i++)
             {
+                var material = Program.Materials[i].Id;
                 bins[i].InTransit = false;
                 bins[i].Empty();
-                bins[i].TryAdd(Orders[i].Material, state.loads[i]);
-                bins[i].InTransit = Orders[i].Material == state.flying;
-                delivered[i] = state.delivered[i];
-                if (CompletedLevels == i && delivered[i] >= bins[i].Capacity) CompletedLevels++;
+                bins[i].TryAdd(material, state.loadsByMaterial[(int)material]);
+                bins[i].InTransit = material == state.flying;
             }
             Credits = state.credits;
             Flying = state.flying;
@@ -140,7 +156,7 @@ namespace PlanetHarvest.Progression
             for (int i = 0; i < bins.Length; i++)
             {
                 if (bins[i].Free != 0) continue;
-                Flying = Orders[i].Material;
+                Flying = Program.Materials[i].Id;
                 bins[i].InTransit = true;
                 break;
             }
@@ -162,12 +178,7 @@ namespace PlanetHarvest.Progression
                 int i = Index(Flying);
                 if (!Returning)
                 {
-                    long previousValue = delivered[i] * Orders[i].Credits / bins[i].Capacity;
-                    delivered[i] += bins[i].Amount;
-                    Credits += delivered[i] * Orders[i].Credits / bins[i].Capacity - previousValue;
-                    bins[i].Empty();
-                    while (CompletedLevels < bins.Length && delivered[CompletedLevels] >= bins[CompletedLevels].Capacity)
-                        CompletedLevels++;
+                    Arrive(i);
                     Returning = true;
                 }
                 else
@@ -177,6 +188,16 @@ namespace PlanetHarvest.Progression
                     LaunchNext();
                 }
             }
+        }
+
+        private void Arrive(int index)
+        {
+            var spec = Program.Materials[index];
+            var bin = bins[index];
+            long before = Contracts.Delivered(spec.Id);
+            long bonus = Contracts.Record(spec.Id, bin.Amount);
+            Credits += spec.CreditsFor(before + bin.Amount) - spec.CreditsFor(before) + bonus;
+            bin.Empty();
         }
     }
 }

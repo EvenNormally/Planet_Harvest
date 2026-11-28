@@ -196,8 +196,10 @@ namespace PlanetHarvest.UI
             var cargo = mining.Elevator.Freight;
             var pack = mining.Inventory;
             const long unit = HarvestInventory.CubicMetre;
-            float exported = (float)((double)cargo.TotalDelivered / (unit * (double)mining.Planet.Data.InitialCount) * 100);
-            telemetry.text = $"Rucksack   {pack.Amount / unit} / {pack.Capacity / unit} m³   ·   {DrillStroke.Name(mining.Profile)}\nPlanet abgeführt   {exported:F4} %\n{mining.Crew.Status}";
+            long carried = pack.Amount + (mining.Crew.Paired ? mining.Crew.PartnerLoad : 0);
+            var planet = PlanetProgress.Measure(mining.Planet.Data.InitialCount, cargo, carried);
+            telemetry.text = $"Rucksack   {pack.Amount / unit} / {pack.Capacity / unit} m³   ·   {DrillStroke.Name(mining.Profile)}\nIm Flug {planet.InFlight / unit} m³   ·   am Lift {planet.AtElevator / unit} m³\n{mining.Crew.Status}";
+            soil.text = $"Planet im Orbit   {planet.OrbitFraction * 100:F4} %";
             if (showPerformance) telemetry.text += $"   ·   {fps:F0} FPS";
             crewStatus.text = mining.Crew.Paired ? $"{mining.Crew.Status}    ·    Partner trägt {mining.Crew.PartnerLoad/unit} m³" : mining.Crew.Status;
             crewButton.text = mining.Crew.Hosting || mining.Crew.IsGuest ? "Trennen" : "Crew hosten";
@@ -216,11 +218,8 @@ namespace PlanetHarvest.UI
                 menuTitle.text = shop ? "Werkzeugstation" : "Inventar";
                 wallet.text = $"{cargo.Credits} Credits";
                 var stock = new System.Text.StringBuilder();
-                for (int i = 0; i < EarthFreight.LevelCount; i++)
-                {
-                    var resource = EarthFreight.Order(i).Material;
-                    stock.AppendLine($"{resource.Name()}   {pack.AmountOf(resource)/unit} m³");
-                }
+                foreach (var resource in cargo.Program.Materials)
+                    stock.AppendLine($"{resource.Name}   {pack.AmountOf(resource.Id)/unit} m³");
                 holdings.text = stock.ToString();
                 for (int i = 0; i < toolLabels.Length; i++)
                 {
@@ -236,17 +235,16 @@ namespace PlanetHarvest.UI
                 return;
             }
             if (menuChanged) events.SetSelectedGameObject(null);
-            int stages = EarthFreight.LevelCount;
-            bool complete = cargo.CompletedLevels == stages;
-            var order = EarthFreight.Order(Mathf.Min(cargo.CompletedLevels,stages-1));
-            long loaded = cargo.Container(order.Material).Amount / unit;
-            long ready = System.Math.Min(order.Volume, cargo.Delivered(order.Material)/unit);
-            level.text = complete ? "AUFTRÄGE ABGESCHLOSSEN" : cargo.CompletedLevels < 2 ? $"LANDEVERTRAG    {cargo.CompletedLevels+1} / 2" : $"LANDEVERTRAG ERFÜLLT   ·   EXTRA {cargo.CompletedLevels-1}/{stages-2}";
-            title.text = complete ? "Freier Abbau" : order.Title;
-            instruction.text = complete ? "Weitere Lieferungen bringen Credits." : $"{order.Volume} m³ {order.Material.Name()} in den Orbit liefern.";
-            bar.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,complete ? 168 : 168f * ready / order.Volume);
-            progress.text = complete ? $"{stages} / {stages}" : $"{ready} / {order.Volume} m³";
-            soil.text = $"{order.Material.Name()}    {loaded} / {order.Volume} m³";
+            var contracts = cargo.Contracts;
+            var contract = contracts.Current;
+            level.text = contract == null ? "AUFTRÄGE ABGESCHLOSSEN"
+                : $"AUFTRAG {contracts.Completed + 1} / {contracts.Count}   ·   {contract.Act.ToUpperInvariant()}";
+            title.text = contract == null ? "Freier Abbau" : contract.Title;
+            instruction.text = contract == null ? "Weitere Lieferungen bringen Credits." : Requirements(cargo, contract);
+            float share = contract == null ? 1 : (float)contracts.CurrentProgress / contract.RequiredVolume;
+            bar.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 168f * share);
+            progress.text = contract == null ? $"{contracts.Count} / {contracts.Count}"
+                : $"{contracts.CurrentProgress / unit} / {contract.RequiredVolume / unit} m³";
             stone.text = $"Guthaben    {cargo.Credits} Credits";
             flight.text = cargo.Flying == MaterialId.None ? "Voll beladen = Abflug" :
                 cargo.Flying.Name() + (cargo.Returning ? " · Rückkehr" : " · Aufstieg");
@@ -264,6 +262,20 @@ namespace PlanetHarvest.UI
             else if (last.target != MaterialId.None)
                 hint.text = last.slot == 0 ? $"LMB   {last.target.Name()} abbauen" : "1   Werkzeug ausrüsten";
             else hint.text = "LMB  Bohren    ·    R  Form wechseln    ·    E  Verladen";
+        }
+
+        /// <summary>Compact per-material progress such as "Erde 12/20 · Stein 3/12 m³".</summary>
+        private static string Requirements(EarthFreight cargo, ContractSpec contract)
+        {
+            const long unit = HarvestInventory.CubicMetre;
+            var text = new System.Text.StringBuilder();
+            foreach (var requirement in contract.Requirements)
+            {
+                if (text.Length > 0) text.Append("  ·  ");
+                text.Append(cargo.Program.Material(requirement.Material).Name).Append(' ')
+                    .Append(cargo.Contracts.Progress(requirement.Material) / unit).Append('/').Append(requirement.CubicMetres);
+            }
+            return text.Append(" m³").ToString();
         }
 
         private static RectTransform Rect(RectTransform parent, string name, Vector2 anchor, Vector2 offset, Vector2 size)
