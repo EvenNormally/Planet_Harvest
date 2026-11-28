@@ -228,6 +228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 928d0acef69de9a4ab42e2752e3a07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: PlanetHarvest.Runtime::PlanetHarvest.Player.FieldEquipment
+  upgradeSet: {fileID: 11400000, guid: 103b2c089b324cdaa17d8148531ffe19, type: 2}
   items:
   - {fileID: 1454802716230439320}
   - {fileID: 1507218795955765978}

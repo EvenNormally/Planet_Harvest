@@ -29,6 +29,7 @@ namespace PlanetHarvest.Core
         private readonly CrewConnection link = new CrewConnection();
         private readonly HarvestInventory otherPack = new HarvestInventory(EarthMining.PackCapacity);
         private readonly MiningTools otherTools = new MiningTools();
+        private ToolUpgrades otherUpgrades;
         private readonly List<Vector3Int> pendingCells = new List<Vector3Int>();
         private Transform avatar;
         private Material suit;
@@ -55,6 +56,8 @@ namespace PlanetHarvest.Core
         internal void Initialize(EarthMining mining)
         {
             miner = mining;
+            otherUpgrades = new ToolUpgrades(miner.Equipment.UpgradeCatalog);
+            otherPack.Resize(otherUpgrades.Capacity);
             body = GetComponent<Rigidbody>();
             Vector3 spawn = miner.Planet.SpawnPosition();
             otherPosition = spawn + miner.Planet.transform.right * 2;
@@ -148,8 +151,9 @@ namespace PlanetHarvest.Core
             {
                 version = ExpeditionSnapshot.CurrentVersion, world = miner.Planet.WorldKey,
                 removed = full ? new List<Vector3Int>(miner.Planet.Data.Removed).ToArray() : pendingCells.ToArray(),
-                host = MinerSnapshot.Capture(miner.Inventory, miner.Equipment.Tools, body.position, body.rotation, miner.Profile),
-                guest = MinerSnapshot.Capture(otherPack, otherTools, otherPosition, otherRotation, otherProfile),
+                host = MinerSnapshot.Capture(miner.Inventory, miner.Equipment.Tools, miner.Equipment.Upgrades,
+                    body.position, body.rotation, miner.Profile),
+                guest = MinerSnapshot.Capture(otherPack, otherTools, otherUpgrades, otherPosition, otherRotation, otherProfile),
                 freight = miner.Elevator.Freight.Capture()
             };
         }
@@ -158,12 +162,12 @@ namespace PlanetHarvest.Core
         {
             var program = miner.Elevator.Freight.Program;
             state.Upgrade(program);
-            state.Validate(miner.Planet, program, full);
+            state.Validate(miner.Planet, program, miner.Equipment.UpgradeCatalog, full);
             if (full || state.removed.Length > 0) miner.Planet.ApplyCells(state.removed, full);
             var local = guest ? state.guest : state.host;
             var remote = guest ? state.host : state.guest;
-            local.Apply(miner.Inventory, miner.Equipment.Tools);
-            remote.Apply(otherPack, otherTools);
+            local.Apply(miner.Inventory, miner.Equipment.Tools, miner.Equipment.Upgrades);
+            remote.Apply(otherPack, otherTools, otherUpgrades);
             otherPosition = remote.position;
             otherRotation = remote.rotation;
             otherProfile = remote.profile;
@@ -188,7 +192,7 @@ namespace PlanetHarvest.Core
             try
             {
                 var state = Capture(true);
-                state.Validate(miner.Planet, miner.Elevator.Freight.Program, true);
+                state.Validate(miner.Planet, miner.Elevator.Freight.Program, miner.Equipment.UpgradeCatalog, true);
                 ExpeditionSnapshot.Write(path, state);
                 Status = "Expedition gespeichert";
             }
@@ -296,6 +300,13 @@ namespace PlanetHarvest.Core
                 if ((uint)p.choice < MiningTools.Count) otherTools.Select((MiningTool)p.choice, miner.Elevator.Freight, nearShop);
                 return;
             }
+            if (p.kind == "upgrade")
+            {
+                bool nearShop = (p.position - miner.Workshop.transform.position).sqrMagnitude < 25;
+                if ((uint)p.choice < UpgradeCatalog.AxisCount)
+                    otherUpgrades.TryBuy((UpgradeAxis)p.choice, miner.Elevator.Freight, nearShop, otherPack);
+                return;
+            }
             if (!((p.eye - p.position).sqrMagnitude < 4 && p.forward.sqrMagnitude > .98f && p.forward.sqrMagnitude < 1.02f)) return;
             var spec = MiningTools.Spec(otherTools.Active);
             float reach = p.kind == "load" ? EarthMining.InteractReach : spec.Reach;
@@ -304,8 +315,9 @@ namespace PlanetHarvest.Core
                 if (miner.Elevator.Freight.Load(otherPack, bin.Material) == 0) miner.Elevator.Freight.Dispatch(bin.Material);
             if (p.kind == "cut" && Time.unscaledTime >= nextGuestCut && hit.collider.GetComponentInParent<Voxel.VoxelPlanet>() == miner.Planet)
             {
-                nextGuestCut = Time.unscaledTime + spec.RepeatSeconds;
-                if (miner.Planet.CellAt(hit) == p.contact) miner.Cut(otherPack, otherTools.Active, p.profile, p.contact, p.forward);
+                nextGuestCut = Time.unscaledTime + otherUpgrades.RepeatSeconds(spec.RepeatSeconds);
+                if (miner.Planet.CellAt(hit) == p.contact)
+                    miner.Cut(otherPack, otherTools.Active, p.profile, p.contact, p.forward, otherUpgrades.RadiusMultiplier);
             }
         }
 

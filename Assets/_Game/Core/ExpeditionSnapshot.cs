@@ -20,18 +20,23 @@ namespace PlanetHarvest.Core
         public int owned = 1;
         public long[] amounts = new long[HarvestInventory.MaterialSlots];
         public DrillProfile profile;
+        /// <summary>Upgrade level per <see cref="UpgradeAxis"/>. Missing in older saves, which load as level 0.</summary>
+        public int[] upgrades = new int[UpgradeCatalog.AxisCount];
 
-        public static MinerSnapshot Capture(HarvestInventory pack, MiningTools tools, Vector3 position,
-            Quaternion rotation, DrillProfile profile)
+        public static MinerSnapshot Capture(HarvestInventory pack, MiningTools tools, ToolUpgrades upgrades,
+            Vector3 position, Quaternion rotation, DrillProfile profile)
         {
             var state = new MinerSnapshot { position = position, rotation = rotation, profile = profile,
-                owned = tools.Ownership, active = tools.Active };
+                owned = tools.Ownership, active = tools.Active, upgrades = upgrades.Capture() };
             for (int i = 1; i < state.amounts.Length; i++) state.amounts[i] = pack.AmountOf((MaterialId)i);
             return state;
         }
 
-        public void Validate()
+        public void Validate(UpgradeCatalog catalog)
         {
+            if (upgrades == null || upgrades.Length == 0) upgrades = new int[UpgradeCatalog.AxisCount];
+            if (!catalog.IsValid(upgrades)) throw new InvalidDataException("Ungültige Upgradestufen.");
+            long capacity = catalog.CapacityAt(upgrades[(int)UpgradeAxis.Capacity]);
             if (amounts == null || amounts.Length != HarvestInventory.MaterialSlots || amounts[0] != 0 ||
                 amounts[(int)MaterialId.Regolith] != 0 || owned < 1 || owned > 7 || (owned & 1) == 0 ||
                 (uint)active >= MiningTools.Count || (owned & (1 << (int)active)) == 0 || (uint)profile > 2 ||
@@ -39,7 +44,7 @@ namespace PlanetHarvest.Core
             long total = 0;
             foreach (long amount in amounts)
             {
-                if (amount < 0 || amount > EarthMining.PackCapacity - total) throw new InvalidDataException("Ungültige Ladung.");
+                if (amount < 0 || amount > capacity - total) throw new InvalidDataException("Ungültige Ladung.");
                 total += amount;
             }
         }
@@ -47,9 +52,10 @@ namespace PlanetHarvest.Core
         internal static bool ValidPose(Vector3 p, Quaternion q) => p.sqrMagnitude < 200 * 200 &&
             Quaternion.Dot(q, q) > .99f && Quaternion.Dot(q, q) < 1.01f;
 
-        public void Apply(HarvestInventory pack, MiningTools tools)
+        public void Apply(HarvestInventory pack, MiningTools tools, ToolUpgrades upgrades)
         {
             pack.Empty();
+            upgrades.Restore(this.upgrades, pack);
             for (int i = 1; i < amounts.Length; i++) pack.TryAdd((MaterialId)i, amounts[i]);
             tools.Restore(owned, active);
         }
@@ -75,12 +81,12 @@ namespace PlanetHarvest.Core
             version = CurrentVersion;
         }
 
-        public void Validate(VoxelPlanet moon, FreightProgram program, bool full)
+        public void Validate(VoxelPlanet moon, FreightProgram program, UpgradeCatalog upgrades, bool full)
         {
             if (version != CurrentVersion || world != moon.WorldKey || host == null || guest == null || freight == null)
                 throw new InvalidDataException("Spielstand oder Planetenversion passt nicht.");
-            host.Validate();
-            guest.Validate();
+            host.Validate(upgrades);
+            guest.Validate(upgrades);
             int slots = HarvestInventory.MaterialSlots;
             if (freight.loadsByMaterial?.Length != slots || freight.deliveredByMaterial?.Length != slots || freight.credits < 0 ||
                 !(freight.progress >= 0 && freight.progress <= 1) || freight.rewardedContracts < 0 ||

@@ -13,7 +13,7 @@ namespace PlanetHarvest.Mining
         internal bool InTransit { get; set; }
         public long Amount { get; private set; }
         public int Revision { get; private set; }
-        public long Capacity { get; }
+        public long Capacity { get; private set; }
         public long Free => Capacity - Amount;
 
         public HarvestInventory(long capacity = CubicMetre, MaterialId? acceptedMaterial = null)
@@ -67,6 +67,20 @@ namespace PlanetHarvest.Mining
             Amount -= moved;
             Revision++;
             return moved;
+        }
+
+        /// <summary>Grows the capacity; never shrinks it.</summary>
+        public void Expand(long capacity)
+        {
+            if (capacity > Capacity) Resize(capacity);
+        }
+
+        /// <summary>Sets the capacity. It may not drop below the current contents.</summary>
+        public void Resize(long capacity)
+        {
+            if (capacity <= 0 || capacity < Amount) throw new ArgumentOutOfRangeException(nameof(capacity));
+            Capacity = capacity;
+            Revision++;
         }
 
         internal void Empty()

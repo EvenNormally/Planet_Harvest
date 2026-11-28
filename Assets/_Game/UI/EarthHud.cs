@@ -30,12 +30,14 @@ namespace PlanetHarvest.UI
         private TextMeshProUGUI beltTool, menuTitle, wallet, holdings, footer;
         private readonly TextMeshProUGUI[] toolLabels = new TextMeshProUGUI[MiningTools.Count];
         private readonly Button[] toolButtons = new Button[MiningTools.Count];
+        private readonly TextMeshProUGUI[] upgradeLabels = new TextMeshProUGUI[UpgradeCatalog.AxisCount];
+        private readonly Button[] upgradeButtons = new Button[UpgradeCatalog.AxisCount];
         private RectTransform modal, gameplay;
         private FieldMenu displayedMenu;
         private EventSystem events;
         private float nextRefresh;
         private (int slot, MaterialId target, MaterialId bin, bool shop, int inventory, int freight,
-            MiningTool active, FieldMenu menu) last;
+            MiningTool active, FieldMenu menu, int upgrades) last;
         public bool EditingAddress => address && address.isFocused;
         private bool initialized, showPerformance;
         private int measuredFrames;
@@ -124,7 +126,7 @@ namespace PlanetHarvest.UI
                 host.transform.SetParent(root,false);
                 events = host.GetComponent<EventSystem>();
             }
-            modal = Panel(root,"Feldmenü",new Vector2(.5f,.5f),Vector2.zero,new Vector2(590,492),Ink);
+            modal = Panel(root,"Feldmenü",new Vector2(.5f,.5f),Vector2.zero,new Vector2(590,652),Ink);
             Box(modal,0,0,590,4,Mint);
             menuTitle = Label(modal,22,16,320,42,30,Paper,true);
             wallet = Label(modal,346,21,218,28,18,Mint,true,TextAlignmentOptions.MidlineRight);
@@ -138,30 +140,38 @@ namespace PlanetHarvest.UI
                 toolButtons[i] = MenuButton(row, () => mining.ChooseTool(tool));
                 toolLabels[i] = Label(row.rectTransform,10,3,330,46,15,Paper);
             }
-            footer = Label(modal,22,290,548,28,15,Muted);
-            var close = Box(modal,22,332,160,32,Slate);
+            Label(modal,221,292,340,23,14,Mint,true).text = "UPGRADES";
+            for (int i = 0; i < upgradeLabels.Length; i++)
+            {
+                var axis = (UpgradeAxis)i;
+                var row = Box(modal,221,320+i*44,347,40,Slate);
+                upgradeButtons[i] = MenuButton(row, () => mining.ChooseUpgrade(axis));
+                upgradeLabels[i] = Label(row.rectTransform,10,2,330,36,13,Paper);
+            }
+            footer = Label(modal,22,450,548,28,15,Muted);
+            var close = Box(modal,22,492,160,32,Slate);
             MenuButton(close, () => mining.CloseMenu());
             Label(close.rectTransform,5,1,150,30,15,Paper,true,TextAlignmentOptions.Center).text = "Schließen";
-            Label(modal,209,334,360,26,14,Muted,false,TextAlignmentOptions.MidlineRight).text = "1–3  Werkzeug wählen     ·     Esc  Zurück";
-            crewStatus = Label(modal,22,371,548,21,14,Mint);
+            Label(modal,209,494,360,26,14,Muted,false,TextAlignmentOptions.MidlineRight).text = "1–3  Werkzeug   ·   4–6  Upgrade   ·   Esc  Zurück";
+            crewStatus = Label(modal,22,531,548,21,14,Mint);
             address = AddressField(modal);
-            var hostButton = Box(modal,22,402,150,33,Slate);
+            var hostButton = Box(modal,22,562,150,33,Slate);
             MenuButton(hostButton, () =>
             {
                 if (mining.Crew.Hosting || mining.Crew.IsGuest) mining.Crew.StopSession();
                 else mining.Crew.Host();
             });
             crewButton = Label(hostButton.rectTransform,4,1,142,31,14,Paper,true,TextAlignmentOptions.Center);
-            var join = Box(modal,414,402,154,33,Slate);
+            var join = Box(modal,414,562,154,33,Slate);
             MenuButton(join, () => mining.Crew.Join(address.text));
             Label(join.rectTransform,4,1,146,31,14,Paper,true,TextAlignmentOptions.Center).text = "IP beitreten";
-            Label(modal,22,445,548,31,14,Muted).text = "F5  Speichern     F9  Laden     ·     Spielstand liegt beim Host";
+            Label(modal,22,605,548,31,14,Muted).text = "F5  Speichern     F9  Laden     ·     Spielstand liegt beim Host";
             modal.gameObject.SetActive(false);
         }
 
         private TMP_InputField AddressField(RectTransform panel)
         {
-            var field = Box(panel,181,402,224,33,Slate);
+            var field = Box(panel,181,562,224,33,Slate);
             field.raycastTarget = true;
             var input = field.gameObject.AddComponent<TMP_InputField>();
             var value = Label(field.rectTransform,8,0,208,33,16,Paper);
@@ -204,7 +214,8 @@ namespace PlanetHarvest.UI
             crewStatus.text = mining.Crew.Paired ? $"{mining.Crew.Status}    ·    Partner trägt {mining.Crew.PartnerLoad/unit} m³" : mining.Crew.Status;
             crewButton.text = mining.Crew.Hosting || mining.Crew.IsGuest ? "Trennen" : "Crew hosten";
             var state = (mining.Equipment.Slot, mining.Target, mining.Bin ? mining.Bin.Material : MaterialId.None,
-                mining.AtWorkshop, pack.Revision, cargo.Revision, mining.Equipment.Tools.Active, mining.Menu);
+                mining.AtWorkshop, pack.Revision, cargo.Revision, mining.Equipment.Tools.Active, mining.Menu,
+                mining.Equipment.Upgrades.Revision);
             if (initialized && last.Equals(state)) return;
             last = state;
             initialized = true;
@@ -229,6 +240,17 @@ namespace PlanetHarvest.UI
                     string action = tool == last.active ? "Ausgerüstet" : owned ? "Ausrüsten" : shop ? $"{spec.Price} Credits" : "Werkzeugstation";
                     toolLabels[i].text = $"{i+1}   <b>{spec.Name}</b>    ·    {action}\n      {spec.Description}";
                     toolButtons[i].interactable = owned || (shop && cargo.Credits >= spec.Price);
+                }
+                var upgrades = mining.Equipment.Upgrades;
+                for (int i = 0; i < upgradeLabels.Length; i++)
+                {
+                    var axis = (UpgradeAxis)i;
+                    int level = upgrades.Level(axis), max = upgrades.Catalog.MaxLevel(axis);
+                    string next = upgrades.IsMaxed(axis) ? "Höchste Stufe erreicht"
+                        : $"Nächste Stufe {Describe(axis, upgrades.Catalog.Step(axis, level + 1).Value)}   ·   " +
+                          (shop ? $"{upgrades.NextPrice(axis)} Credits" : "an der Werkbank");
+                    upgradeLabels[i].text = $"{i+4}   <b>{upgrades.Catalog.Name(axis)}</b>    Stufe {level}/{max}  ·  {Describe(axis, upgrades.Catalog.Step(axis, level).Value)}\n      {next}";
+                    upgradeButtons[i].interactable = shop && !upgrades.IsMaxed(axis) && cargo.Credits >= upgrades.NextPrice(axis);
                 }
                 footer.text = shop ? "Credits erhältst du, sobald eine volle Ladung den Orbit erreicht." : "Neue Werkzeuge gibt es an der Werkbank links vom Startplatz.";
                 if (menuChanged) events.SetSelectedGameObject(toolButtons[(int)last.active].gameObject);
@@ -263,6 +285,9 @@ namespace PlanetHarvest.UI
                 hint.text = last.slot == 0 ? $"LMB   {last.target.Name()} abbauen" : "1   Werkzeug ausrüsten";
             else hint.text = "LMB  Bohren    ·    R  Form wechseln    ·    E  Verladen";
         }
+
+        private static string Describe(UpgradeAxis axis, float value) =>
+            axis == UpgradeAxis.Capacity ? $"{value:0} m³" : $"×{value:0.##}";
 
         /// <summary>Compact per-material progress such as "Erde 12/20 · Stein 3/12 m³".</summary>
         private static string Requirements(EarthFreight cargo, ContractSpec contract)

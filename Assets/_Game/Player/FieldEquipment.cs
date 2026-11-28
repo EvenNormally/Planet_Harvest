@@ -8,12 +8,15 @@ namespace PlanetHarvest.Player
     public sealed class FieldEquipment : MonoBehaviour
     {
         [SerializeField] private GameObject[] items;
+        [SerializeField] private ToolUpgradeSet upgradeSet;
         private static readonly Key[] Keys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4 };
         private static readonly MaterialId[] Materials = { MaterialId.None, MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre };
         public bool ShowingTool => Slot == 0 && models[(int)Tools.Active].activeSelf;
         public int Slot { get; private set; }
         public MaterialId HeldMaterial => Materials[Slot];
         public MiningTools Tools { get; } = new MiningTools();
+        public ToolUpgrades Upgrades { get; private set; }
+        public UpgradeCatalog UpgradeCatalog => Upgrades.Catalog;
         private readonly GameObject[] models = new GameObject[3];
         private readonly Transform[] spindles = new Transform[3];
         private Material finish;
@@ -23,6 +26,8 @@ namespace PlanetHarvest.Player
 
         private void Awake()
         {
+            if (upgradeSet == null) throw new MissingReferenceException($"{name}: Werkzeug-Upgrades fehlen.");
+            Upgrades = new ToolUpgrades(upgradeSet.CreateCatalog());
             rest = transform.localRotation;
             restPosition = transform.localPosition;
             finish = FieldProps.Finish();

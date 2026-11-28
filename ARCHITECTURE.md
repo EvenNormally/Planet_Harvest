@@ -33,6 +33,16 @@ Spielstand Version 2 speichert Liefer- und Containermengen indiziert nach `Mater
 (Arrays pro alter Auftragsposition Erde, Stein, Eisen, Kupfer, Quarz) werden beim Laden migriert; bereits
 erfüllte Aufträge gelten als vergütet, damit Laden keine Credits erzeugt.
 
+## Werkzeug-Upgrades
+
+`ToolUpgradeSet` (`ScriptableObjects/ToolUpgrades.asset`, referenziert vom FieldEquipment-Prefab) definiert
+drei Achsen mit Stufen aus Preis und Wert: Abbauradius (Faktor auf die Schnittgröße), Abbaugeschwindigkeit
+(Faktor auf die Schlagfrequenz) und Aufnahmekapazität (Rucksackvolumen in m³, Stufe 0 = 24 m³).
+`ToolUpgrades` hält die Stufen eines Spielers; bezahlt wird aus dem gemeinsamen Elevator-Guthaben, nur an
+der Werkbank (Tasten 4–6 im Werkstattmenü). Im Koop sendet der Gast eine `upgrade`-Absicht; der Host prüft
+Nähe zur Werkbank und Guthaben, wendet Radius und Takt auf die Gast-Schnitte an und überträgt die Stufen im
+`MinerSnapshot`. Die Stufen liegen im Spielstand je Crewplatz; ältere Stände ohne Feld laden als Stufe 0.
+
 ## Weitere Entwicklungsrichtung
 
 ## Systemgrenzen

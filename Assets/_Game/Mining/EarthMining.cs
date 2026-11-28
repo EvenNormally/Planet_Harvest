@@ -38,9 +38,9 @@ namespace PlanetHarvest.Mining
         internal Camera View => view;
         private readonly List<Vector3Int> cut = new List<Vector3Int>(64);
         internal List<Vector3Int> Cut(HarvestInventory pack, MiningTool tool, DrillProfile profile,
-            Vector3Int cell, Vector3 forward)
+            Vector3Int cell, Vector3 forward, float radiusMultiplier)
         {
-            float scale = tool == MiningTool.Pick ? 1 : tool == MiningTool.Drill ? 1.45f : 1.2f;
+            float scale = (tool == MiningTool.Pick ? 1 : tool == MiningTool.Drill ? 1.45f : 1.2f) * radiusMultiplier;
             DrillStroke.Cut(planet, pack, cell, planet.transform.InverseTransformDirection(forward),
                 profile, scale, IsFoundation, cut);
             return cut;
@@ -63,6 +63,7 @@ namespace PlanetHarvest.Mining
             hud = GetComponent<UI.EarthHud>();
             Equipment = Instantiate(equipmentPrefab, view.transform, false);
             Equipment.Select(0, Inventory);
+            Inventory.Resize(Equipment.Upgrades.Capacity);
             Elevator = Instantiate(elevatorPrefab, planet.transform.parent);
             Elevator.Place(planet);
             Workshop = new GameObject("Werkzeugstation").AddComponent<ToolStation>();
@@ -111,6 +112,14 @@ namespace PlanetHarvest.Mining
             return true;
         }
 
+        /// <summary>Buys the next level of an upgrade axis at the workbench (host decides for guests).</summary>
+        public bool ChooseUpgrade(UpgradeAxis axis)
+        {
+            if (Menu != FieldMenu.Workshop) return false;
+            if (Crew.IsGuest) { Crew.Request("upgrade", (int)axis); return true; }
+            return Equipment.Upgrades.TryBuy(axis, Elevator.Freight, true, Inventory);
+        }
+
         private void Update()
         {
             var keys = Keyboard.current;
@@ -129,6 +138,9 @@ namespace PlanetHarvest.Mining
                     if (keys.digit1Key.wasPressedThisFrame) ChooseTool(MiningTool.Pick);
                     if (keys.digit2Key.wasPressedThisFrame) ChooseTool(MiningTool.ProspectingPick);
                     if (keys.digit3Key.wasPressedThisFrame) ChooseTool(MiningTool.Drill);
+                    if (keys.digit4Key.wasPressedThisFrame) ChooseUpgrade(UpgradeAxis.Radius);
+                    if (keys.digit5Key.wasPressedThisFrame) ChooseUpgrade(UpgradeAxis.Speed);
+                    if (keys.digit6Key.wasPressedThisFrame) ChooseUpgrade(UpgradeAxis.Capacity);
                 }
                 return;
             }
@@ -165,9 +177,10 @@ namespace PlanetHarvest.Mining
             bool strike = tool.RepeatSeconds > 0 ? player.MineHeld && Time.time >= nextStrike : player.MinePressed;
             if (strike && Equipment.Slot == 0 && Target != MaterialId.None && Inventory.Free >= HarvestInventory.CubicMetre)
             {
-                nextStrike = Time.time + tool.RepeatSeconds;
+                nextStrike = Time.time + Equipment.Upgrades.RepeatSeconds(tool.RepeatSeconds);
                 if (Crew.IsGuest) Crew.Request("cut", 0, cell);
-                else if (Cut(Inventory, Equipment.Tools.Active, Profile, cell, view.transform.forward).Count == 0) return;
+                else if (Cut(Inventory, Equipment.Tools.Active, Profile, cell, view.transform.forward,
+                    Equipment.Upgrades.RadiusMultiplier).Count == 0) return;
                 Equipment.Strike();
                 feedback.Contact(Target);
                 debris.Burst(hit.point, hit.normal, (hit.point - planet.transform.position).normalized, Target);
