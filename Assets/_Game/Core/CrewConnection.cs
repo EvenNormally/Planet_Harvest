@@ -22,6 +22,10 @@ namespace PlanetHarvest.Core
         private ConcurrentQueue<string> incoming;
         private Task reading;
         private NetworkStream stream;
+        private long bytesReceived;
+        /// <summary>Diagnostics: framed bytes queued for sending and bytes read, including 4-byte headers.</summary>
+        public long BytesSent { get; private set; }
+        public long BytesReceived => Interlocked.Read(ref bytesReceived);
         public bool Hosting => listener != null;
         public bool Joined => stream != null && !Hosting;
         public bool Connected => stream != null;
@@ -88,11 +92,11 @@ namespace PlanetHarvest.Core
             socket.NoDelay = true;
             stream = socket.GetStream();
             incoming = new ConcurrentQueue<string>();
-            reading = ReadFrames(stream, incoming);
+            reading = ReadFrames(stream, incoming, this);
             Opened?.Invoke();
         }
 
-        private static async Task ReadFrames(NetworkStream source, ConcurrentQueue<string> queue)
+        private static async Task ReadFrames(NetworkStream source, ConcurrentQueue<string> queue, CrewConnection owner)
         {
             byte[] header = new byte[4];
             while (await ReadExactly(source, header).ConfigureAwait(false))
@@ -101,6 +105,7 @@ namespace PlanetHarvest.Core
                 if (length < 1 || length > MaxBytes || queue.Count >= 128) throw new InvalidDataException("Ungültiges Crew-Paket.");
                 byte[] bytes = new byte[length];
                 if (!await ReadExactly(source, bytes).ConfigureAwait(false)) throw new EndOfStreamException();
+                Interlocked.Add(ref owner.bytesReceived, length + header.Length);
                 queue.Enqueue(Encoding.UTF8.GetString(bytes));
             }
         }
@@ -130,6 +135,7 @@ namespace PlanetHarvest.Core
             Buffer.BlockCopy(BitConverter.GetBytes(count), 0, frame, 0, 4);
             Encoding.UTF8.GetBytes(json, 0, json.Length, frame, 4);
             outgoing.Enqueue(frame);
+            BytesSent += frame.Length;
         }
 
         public void DropPeer()

@@ -27,6 +27,11 @@ namespace PlanetHarvest.Voxel
         private readonly Dictionary<Vector3Int, MeshFilter> chunks = new Dictionary<Vector3Int, MeshFilter>();
         private readonly Dictionary<Collider, List<Vector3Int>> triangleCells = new Dictionary<Collider, List<Vector3Int>>();
         public VoxelData Data { get; private set; }
+        /// <summary>Diagnostics: chunk meshes rebuilt since start, and chunks still waiting for a rebuild.</summary>
+        public int MeshRebuilds { get; private set; }
+        public int PendingRebuilds => dirty.Count;
+        public double RebuildMilliseconds => rebuildTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        private long rebuildTicks;
         private static readonly Vector3Int[] Directions =
         {
             Vector3Int.right, Vector3Int.left, Vector3Int.up,
@@ -117,11 +122,14 @@ namespace PlanetHarvest.Voxel
                 rebuildBatch.Add(key);
                 if (rebuildBatch.Count >= budget) break;
             }
+            if (rebuildBatch.Count == 0) return;
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
             foreach (var key in rebuildBatch)
             {
                 Rebuild(key);
                 dirty.Remove(key);
             }
+            rebuildTicks += System.Diagnostics.Stopwatch.GetTimestamp() - started;
         }
 
         public Vector3Int CellAt(RaycastHit hit)
@@ -134,6 +142,7 @@ namespace PlanetHarvest.Voxel
 
         private void Rebuild(Vector3Int key)
         {
+            MeshRebuilds++;
             var vertices = new List<Vector3>();
             var colors = Earth != null ? new List<Color32>() : null;
             var normals = new List<Vector3>();

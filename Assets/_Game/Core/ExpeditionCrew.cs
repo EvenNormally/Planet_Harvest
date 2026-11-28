@@ -48,6 +48,9 @@ namespace PlanetHarvest.Core
         public bool Paired => ready;
         public string LinkStatus => IsGuest ? "Gast" : Hosting ? "Host" : "Solo";
         public long PartnerLoad => otherPack.Amount;
+        /// <summary>Diagnostics for profiling: bytes this side has sent and received on the crew link.</summary>
+        public long NetworkBytesSent => link.BytesSent;
+        public long NetworkBytesReceived => link.BytesReceived;
         public string Status { get; private set; } = "Solo";
         private string SaveDirectory => Application.isBatchMode ? Application.temporaryCachePath : Application.persistentDataPath;
         public string SavePath => Path.Combine(SaveDirectory, "expedition-v1.json.gz");
