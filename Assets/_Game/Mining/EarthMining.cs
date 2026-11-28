@@ -29,6 +29,10 @@ namespace PlanetHarvest.Mining
         public EarthElevator Elevator { get; private set; }
         public ToolStation Workshop { get; private set; }
         public BeamNetwork Beams { get; private set; }
+        public bool EndingShown { get; private set; }
+        private float nextEndingCheck;
+        private Transform scanPing;
+        private float scanPingUntil;
         public Machines.DrillRobotUnit Robot { get; private set; }
         public Machines.DrillRobotUnit AimedRobot { get; private set; }
         public PumpStation Pump { get; private set; }
@@ -117,6 +121,7 @@ namespace PlanetHarvest.Mining
             if (Beams) Destroy(Beams.gameObject);
             if (Robot) Destroy(Robot.gameObject);
             if (Pump) Destroy(Pump.gameObject);
+            if (scanPing) Destroy(scanPing.gameObject);
             if (landscape) Destroy(landscape.gameObject);
         }
 
@@ -167,6 +172,42 @@ namespace PlanetHarvest.Mining
             return true;
         }
 
+        /// <summary>Shows the final sequence once per session when the campaign end condition is met.</summary>
+        private void CheckEnding()
+        {
+            if (EndingShown || Time.time < nextEndingCheck || Elevator == null) return;
+            nextEndingCheck = Time.time + 1;
+            var progress = Progression.PlanetProgress.Measure(planet.Data.InitialCount, Elevator.Freight, Inventory.Amount);
+            if (Progression.ExpeditionEnding.IsComplete(progress, Elevator.Freight.Contracts)) ShowEnding();
+        }
+
+        public void ShowEnding()
+        {
+            EndingShown = true;
+            SetMenu(FieldMenu.Ending);
+        }
+
+        /// <summary>Residue scanner (Z): points at the nearest remaining solid cell once every contract is done.</summary>
+        public string Scan()
+        {
+            if (!Progression.ResidueScanner.Unlocked(Elevator.Freight))
+                return BuildMessage = UI.Localization.Text("scanner.locked");
+            Vector3Int origin = Vector3Int.FloorToInt(planet.transform.InverseTransformPoint(view.transform.position));
+            if (!Progression.ResidueScanner.TryFindNearest(planet.Data, origin, 48, out var cell, out var material))
+                return BuildMessage = UI.Localization.Text("scanner.none");
+            Vector3 world = planet.transform.TransformPoint((Vector3)cell + Vector3.one * .5f);
+            if (!scanPing)
+            {
+                scanPing = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
+                scanPing.name = "Restscanner-Markierung";
+                Destroy(scanPing.GetComponent<Collider>());
+                scanPing.localScale = Vector3.one * .6f;
+            }
+            scanPing.position = world;
+            scanPingUntil = Time.time + 6;
+            return BuildMessage = UI.Localization.Format("scanner.found", material.Name(), Vector3.Distance(world, view.transform.position));
+        }
+
         private void PlaceRobot()
         {
             if (Crew.IsGuest) { Crew.Request(Robot.Robot.Placed ? "robot_remove" : "robot_place", 0); return; }
@@ -209,6 +250,13 @@ namespace PlanetHarvest.Mining
             AimedRobot = null;
             AtPump = false;
             AimingAtPlant = false;
+            CheckEnding();
+            if (scanPing) scanPing.gameObject.SetActive(Time.time < scanPingUntil);
+            if (keys?.f10Key.wasPressedThisFrame == true && (Menu == FieldMenu.Closed || Menu == FieldMenu.Settings))
+            {
+                SetMenu(Menu == FieldMenu.Settings ? FieldMenu.Closed : FieldMenu.Settings);
+                return;
+            }
             if (Menu != FieldMenu.Closed)
             {
                 if (hud && hud.EditingAddress && keys?.escapeKey.wasPressedThisFrame != true) return;
@@ -227,6 +275,7 @@ namespace PlanetHarvest.Mining
             }
             if (!player.Captured) return;
             if (inventoryPressed) { SetMenu(FieldMenu.Inventory); return; }
+            if (keys?.zKey.wasPressedThisFrame == true) Scan();
             if (keys?.rKey.wasPressedThisFrame == true || pad?.dpad.right.wasPressedThisFrame == true)
                 Profile = (DrillProfile)(((int)Profile + 1) % 3);
             Equipment.ReadSelection(Inventory);

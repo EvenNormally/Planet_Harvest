@@ -25,7 +25,9 @@ namespace PlanetHarvest.UI
         private TMP_FontAsset font;
         private TextMeshProUGUI level, title, instruction, progress, soil, stone, flight, hint;
         private Image bar;
-        private TextMeshProUGUI telemetry, crewStatus, crewButton;
+        private TextMeshProUGUI telemetry, crewStatus, crewButton, keyHint;
+        public SettingsPanel Settings { get; private set; }
+        public EndingScreen Ending { get; private set; }
         private TMP_InputField address;
         private TextMeshProUGUI beltTool, menuTitle, wallet, holdings, footer;
         private readonly TextMeshProUGUI[] toolLabels = new TextMeshProUGUI[MiningTools.Count];
@@ -112,9 +114,13 @@ namespace PlanetHarvest.UI
             Panel(root,"Visierkontur",centre,Vector2.zero,new Vector2(6,6),Ink);
             Panel(root,"Visier",centre,Vector2.zero,new Vector2(3,3),Paper);
             var pocket = Panel(root, "Inventartaste", Vector2.zero, new Vector2(22,20), new Vector2(300,116), Ink);
-            Label(pocket,10,4,250,23,14,Paper,true).text = "Tab  Inventar & Crew     R  Bohrform";
+            keyHint = Label(pocket,10,4,280,23,14,Paper,true);
             telemetry = Label(pocket,10,30,284,80,13,Muted,false,TextAlignmentOptions.TopLeft);
             BuildMenu(screen);
+            Settings = gameObject.AddComponent<SettingsPanel>();
+            Settings.Initialize(mining, screen, font);
+            Ending = gameObject.AddComponent<EndingScreen>();
+            Ending.Initialize(mining, screen, font);
         }
 
         private void BuildMenu(RectTransform root)
@@ -223,9 +229,11 @@ namespace PlanetHarvest.UI
             last = state;
             initialized = true;
             displayedMenu = mining.Menu;
-            bool open = displayedMenu != FieldMenu.Closed;
-            gameplay.gameObject.SetActive(!open);
+            bool open = displayedMenu == FieldMenu.Inventory || displayedMenu == FieldMenu.Workshop;
+            gameplay.gameObject.SetActive(displayedMenu == FieldMenu.Closed);
             modal.gameObject.SetActive(open);
+            keyHint.text = Localization.Text("hud.keys") + "     F10";
+            if (!open && displayedMenu != FieldMenu.Closed) return;
             if (open)
             {
                 bool shop = displayedMenu == FieldMenu.Workshop;

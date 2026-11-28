@@ -13,6 +13,8 @@ namespace PlanetHarvest.Player
         [SerializeField] private Transform eyes;
         [SerializeField] private InputActionAsset input;
         private InputActionAsset actions;
+        /// <summary>The player's own copy of the input actions (for rebinding).</summary>
+        public InputActionAsset Actions => actions;
         private InputAction move, look, jump, attack, interact;
         private Rigidbody body;
         private CapsuleCollider capsule;
