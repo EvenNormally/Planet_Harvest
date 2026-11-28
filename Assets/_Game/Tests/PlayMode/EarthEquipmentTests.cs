@@ -261,7 +261,7 @@ namespace PlanetHarvest.Tests
         }
 
         /// <summary>Mines exactly the given volume of one material on the far side of the planet into a pack.</summary>
-        private static void Harvest(VoxelPlanet moon, HarvestInventory into, MaterialId material, long cubicMetres)
+        internal static void Harvest(VoxelPlanet moon, HarvestInventory into, MaterialId material, long cubicMetres)
         {
             var scoop = new HarvestInventory(cubicMetres * HarvestInventory.CubicMetre);
             var changes = new System.Collections.Generic.List<Vector3Int>();

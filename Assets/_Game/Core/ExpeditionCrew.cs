@@ -108,6 +108,7 @@ namespace PlanetHarvest.Core
                 link.Join(address.Trim(), Port, Time.unscaledTime);
                 Application.runInBackground = true;
                 miner.Elevator.Replica = true;
+                miner.Beams.Replica = true;
                 Status = "Verbindung wird hergestellt …";
             }
             catch (Exception e) { StopSession(); Status = "Beitritt fehlgeschlagen · " + e.Message; }
@@ -126,6 +127,7 @@ namespace PlanetHarvest.Core
             var saved = priorSolo;
             priorSolo = null;
             miner.Elevator.Replica = false;
+            miner.Beams.Replica = false;
             Apply(saved, true, false);
         }
 
@@ -157,7 +159,8 @@ namespace PlanetHarvest.Core
                 host = MinerSnapshot.Capture(miner.Inventory, miner.Equipment.Tools, miner.Equipment.Upgrades,
                     body.position, body.rotation, miner.Profile),
                 guest = MinerSnapshot.Capture(otherPack, otherTools, otherUpgrades, otherPosition, otherRotation, otherProfile),
-                freight = miner.Elevator.Freight.Capture()
+                freight = miner.Elevator.Freight.Capture(),
+                logistics = miner.Beams.Capture()
             };
         }
 
@@ -165,7 +168,7 @@ namespace PlanetHarvest.Core
         {
             var program = miner.Elevator.Freight.Program;
             state.Upgrade(program);
-            state.Validate(miner.Planet, program, miner.Equipment.UpgradeCatalog, full);
+            state.Validate(miner.Planet, program, miner.Equipment.UpgradeCatalog, miner.Beams.Settings, full);
             if (full || state.removed.Length > 0) miner.Planet.ApplyCells(state.removed, full);
             var local = guest ? state.guest : state.host;
             var remote = guest ? state.host : state.guest;
@@ -175,6 +178,7 @@ namespace PlanetHarvest.Core
             otherRotation = remote.rotation;
             otherProfile = remote.profile;
             miner.Elevator.Freight.Restore(state.freight);
+            miner.Beams.Restore(state.logistics);
             if (full)
             {
                 miner.Profile = local.profile;
@@ -195,7 +199,7 @@ namespace PlanetHarvest.Core
             try
             {
                 var state = Capture(true);
-                state.Validate(miner.Planet, miner.Elevator.Freight.Program, miner.Equipment.UpgradeCatalog, true);
+                state.Validate(miner.Planet, miner.Elevator.Freight.Program, miner.Equipment.UpgradeCatalog, miner.Beams.Settings, true);
                 ExpeditionSnapshot.Write(path, state);
                 Status = "Expedition gespeichert";
             }
@@ -303,6 +307,11 @@ namespace PlanetHarvest.Core
                 if ((uint)p.choice < MiningTools.Count) otherTools.Select((MiningTool)p.choice, miner.Elevator.Freight, nearShop);
                 return;
             }
+            if (p.kind == "unbuild")
+            {
+                miner.Beams.TryRemoveLast(miner.Elevator.Freight);
+                return;
+            }
             if (p.kind == "upgrade")
             {
                 bool nearShop = (p.position - miner.Workshop.transform.position).sqrMagnitude < 25;
@@ -312,8 +321,11 @@ namespace PlanetHarvest.Core
             }
             if (!((p.eye - p.position).sqrMagnitude < 4 && p.forward.sqrMagnitude > .98f && p.forward.sqrMagnitude < 1.02f)) return;
             var spec = MiningTools.Spec(otherTools.Active);
-            float reach = p.kind == "load" ? EarthMining.InteractReach : spec.Reach;
+            float reach = p.kind == "build" ? EarthMining.BuildReach : p.kind == "cut" ? spec.Reach : EarthMining.InteractReach;
             if (!Physics.Raycast(p.eye, p.forward, out var hit, reach, ~0, QueryTriggerInteraction.Ignore)) return;
+            if (p.kind == "hopper" && hit.collider.TryGetComponent(out BeamHopper _)) miner.Beams.LoadHopper(otherPack);
+            if (p.kind == "build" && hit.collider.GetComponentInParent<Voxel.VoxelPlanet>() == miner.Planet)
+                miner.Beams.TryBuild(hit.point, miner.Elevator.Freight, out _);
             if (p.kind == "load" && hit.collider.TryGetComponent(out EarthCargoBin bin) && (int)bin.Material == p.choice)
                 if (miner.Elevator.Freight.Load(otherPack, bin.Material) == 0) miner.Elevator.Freight.Dispatch(bin.Material);
             if (p.kind == "cut" && Time.unscaledTime >= nextGuestCut && hit.collider.GetComponentInParent<Voxel.VoxelPlanet>() == miner.Planet)

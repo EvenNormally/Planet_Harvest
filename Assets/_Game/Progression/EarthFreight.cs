@@ -129,9 +129,20 @@ namespace PlanetHarvest.Progression
             return true;
         }
 
-        public long Load(HarvestInventory pack, MaterialId type)
+        /// <summary>Gives back the price of a dismantled build (game currency only).</summary>
+        internal void Refund(int amount)
         {
-            long moved = pack.TransferTo(Container(type), type);
+            if (amount <= 0) return;
+            Credits += amount;
+            Revision++;
+        }
+
+        public long Load(HarvestInventory pack, MaterialId type) => Load(pack, type, long.MaxValue);
+
+        /// <summary>Loads up to <paramref name="limit"/> of one material into its container.</summary>
+        public long Load(HarvestInventory pack, MaterialId type, long limit)
+        {
+            long moved = pack.TransferTo(Container(type), type, limit);
             if (moved > 0)
             {
                 Revision++;

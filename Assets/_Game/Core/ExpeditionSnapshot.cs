@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using PlanetHarvest.Logistics;
 using PlanetHarvest.Mining;
 using PlanetHarvest.Player;
 using PlanetHarvest.Progression;
@@ -69,22 +70,33 @@ namespace PlanetHarvest.Core
         public Vector3Int[] removed;
         public MinerSnapshot host, guest;
         public FreightSnapshot freight;
+        /// <summary>Tractor-beam chain. Absent before version 3, which means no chain.</summary>
+        public BeamNetworkSnapshot logistics;
 
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         /// <summary>Migrates older save layouts in place to <see cref="CurrentVersion"/>.</summary>
         public void Upgrade(FreightProgram program)
         {
-            if (version != 1) return;
-            if (freight == null) throw new InvalidDataException("Liftzustand fehlt.");
-            freight.UpgradeFromVersionOne(program);
-            version = CurrentVersion;
+            if (version == 1)
+            {
+                if (freight == null) throw new InvalidDataException("Liftzustand fehlt.");
+                freight.UpgradeFromVersionOne(program);
+                version = 2;
+            }
+            if (version == 2)
+            {
+                logistics = null;
+                version = 3;
+            }
         }
 
-        public void Validate(VoxelPlanet moon, FreightProgram program, UpgradeCatalog upgrades, bool full)
+        public void Validate(VoxelPlanet moon, FreightProgram program, UpgradeCatalog upgrades, BeamSettings beams, bool full)
         {
             if (version != CurrentVersion || world != moon.WorldKey || host == null || guest == null || freight == null)
                 throw new InvalidDataException("Spielstand oder Planetenversion passt nicht.");
+            if (logistics != null && logistics.nodes == null && logistics.chain == null) logistics = null;
+            BeamNetwork.Validate(logistics, beams, moon.Data.Radius);
             host.Validate(upgrades);
             guest.Validate(upgrades);
             int slots = HarvestInventory.MaterialSlots;
@@ -125,7 +137,8 @@ namespace PlanetHarvest.Core
             foreach (var spec in program.Materials)
             {
                 int id = (int)spec.Id;
-                long booked = host.amounts[id] + guest.amounts[id] + freight.loadsByMaterial[id] + freight.deliveredByMaterial[id];
+                long booked = host.amounts[id] + guest.amounts[id] + freight.loadsByMaterial[id] + freight.deliveredByMaterial[id]
+                    + BeamChain.Holding(logistics?.chain, spec.Id);
                 if (booked != quantities[id]) throw new InvalidDataException("Materialbilanz stimmt nicht.");
             }
         }

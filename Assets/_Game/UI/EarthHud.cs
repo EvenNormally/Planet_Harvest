@@ -111,9 +111,9 @@ namespace PlanetHarvest.UI
             var centre = new Vector2(.5f,.5f);
             Panel(root,"Visierkontur",centre,Vector2.zero,new Vector2(6,6),Ink);
             Panel(root,"Visier",centre,Vector2.zero,new Vector2(3,3),Paper);
-            var pocket = Panel(root, "Inventartaste", Vector2.zero, new Vector2(22,20), new Vector2(268,98), Ink);
+            var pocket = Panel(root, "Inventartaste", Vector2.zero, new Vector2(22,20), new Vector2(300,116), Ink);
             Label(pocket,10,4,250,23,14,Paper,true).text = "Tab  Inventar & Crew     R  Bohrform";
-            telemetry = Label(pocket,10,30,250,62,13,Muted,false,TextAlignmentOptions.TopLeft);
+            telemetry = Label(pocket,10,30,284,80,13,Muted,false,TextAlignmentOptions.TopLeft);
             BuildMenu(screen);
         }
 
@@ -208,7 +208,8 @@ namespace PlanetHarvest.UI
             const long unit = HarvestInventory.CubicMetre;
             long carried = pack.Amount + (mining.Crew.Paired ? mining.Crew.PartnerLoad : 0);
             var planet = PlanetProgress.Measure(mining.Planet.Data.InitialCount, cargo, carried);
-            telemetry.text = $"Rucksack   {pack.Amount / unit} / {pack.Capacity / unit} m³   ·   {DrillStroke.Name(mining.Profile)}\nIm Flug {planet.InFlight / unit} m³   ·   am Lift {planet.AtElevator / unit} m³\n{mining.Crew.Status}";
+            telemetry.text = $"Rucksack   {pack.Amount / unit} / {pack.Capacity / unit} m³   ·   {DrillStroke.Name(mining.Profile)}\nIm Flug {planet.InFlight / unit} m³   ·   am Lift {planet.AtElevator / unit} m³\n{BeamStatus()}\n{mining.Crew.Status}";
+            if (!string.IsNullOrEmpty(mining.BuildMessage)) telemetry.text += $"   ·   {mining.BuildMessage}";
             soil.text = $"Planet im Orbit   {planet.OrbitFraction * 100:F4} %";
             if (showPerformance) telemetry.text += $"   ·   {fps:F0} FPS";
             crewStatus.text = mining.Crew.Paired ? $"{mining.Crew.Status}    ·    Partner trägt {mining.Crew.PartnerLoad/unit} m³" : mining.Crew.Status;
@@ -277,6 +278,7 @@ namespace PlanetHarvest.UI
                 if (i > 0) quantities[i].text = (pack.AmountOf(Materials[i]) / unit).ToString();
             }
             if (last.shop) hint.text = "E   Werkzeugstation öffnen";
+            else if (mining.AtHopper) hint.text = mining.Beams.Chain.Hopper.Free < unit ? "Trichter voll · Strahl arbeitet" : "E   Sammeltrichter befüllen";
             else if (last.bin != MaterialId.None)
                 hint.text = cargo.Container(last.bin).Free == 0 ? "Voll beladen · wartet auf den Lift"
                     : pack.AmountOf(last.bin) > 0 ? $"E   {last.bin.Name()} einladen" : cargo.Container(last.bin).Amount > 0 ? "E   Teilladung versenden" : $"{last.bin.Name()}container · leer";
@@ -284,6 +286,17 @@ namespace PlanetHarvest.UI
             else if (last.target != MaterialId.None)
                 hint.text = last.slot == 0 ? $"LMB   {last.target.Name()} abbauen" : "1   Werkzeug ausrüsten";
             else hint.text = "LMB  Bohren    ·    R  Form wechseln    ·    E  Verladen";
+        }
+
+        private string BeamStatus()
+        {
+            var beams = mining.Beams;
+            if (beams == null) return string.Empty;
+            if (!beams.Unlocked) return "Traktorstrahl nach dem Landevertrag";
+            if (!beams.HasHopper) return $"B  Sammeltrichter bauen ({beams.NextPrice} Cr)";
+            string link = beams.MastCount == 0 ? "ohne Mast" : beams.Connected ? "am Lift" : "nicht verbunden";
+            string jam = beams.Chain.Blocked ? "  ·  Rückstau" : string.Empty;
+            return $"Strahl {beams.MastCount} Masten, {link}, {beams.Chain.LumpCount} m³{jam}   ·   B/N";
         }
 
         private static string Describe(UpgradeAxis axis, float value) =>

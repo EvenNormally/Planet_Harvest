@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 293bdee9a3e64e489d2b1574c2e2c9ed, type: 3}
+  m_Name: TractorBeam
+  m_EditorClassIdentifier: PlanetHarvest.Runtime::PlanetHarvest.Logistics.BeamSettings
+  hopperPrice: 30
+  mastPrice: 40
+  unlockAfterContracts: 1
+  range: 8
+  minimumSpacing: 2
+  slotsPerSegment: 4
+  stepSeconds: 0.5
+  hopperCubicMetres: 6
+  maximumMasts: 12

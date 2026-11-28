@@ -13,6 +13,7 @@ namespace PlanetHarvest.Mining
     public sealed class EarthMining : MonoBehaviour
     {
         public const float InteractReach = 5f;
+        public const float BuildReach = 7f;
 
         [SerializeField] private VoxelPlanet planet;
         [SerializeField] private Camera view;
@@ -27,6 +28,10 @@ namespace PlanetHarvest.Mining
         public FieldEquipment Equipment { get; private set; }
         public EarthElevator Elevator { get; private set; }
         public ToolStation Workshop { get; private set; }
+        public BeamNetwork Beams { get; private set; }
+        public bool AtHopper { get; private set; }
+        /// <summary>Feedback of the last build attempt for the HUD.</summary>
+        public string BuildMessage { get; private set; } = string.Empty;
         public bool AtWorkshop { get; private set; }
         public FieldMenu Menu { get; private set; }
         public EarthCargoBin Bin { get; private set; }
@@ -46,7 +51,7 @@ namespace PlanetHarvest.Mining
             return cut;
         }
 
-        private bool IsFoundation(Vector3Int cell)
+        internal bool IsFoundation(Vector3Int cell)
         {
             Vector3 p = planet.transform.TransformPoint((Vector3)cell + Vector3.one * .5f);
             Vector3 dock = Elevator.transform.InverseTransformPoint(p);
@@ -75,6 +80,9 @@ namespace PlanetHarvest.Mining
                 foot = ground.point;
             Workshop.transform.SetPositionAndRotation(foot, Quaternion.LookRotation(Vector3.ProjectOnPlane(planet.transform.forward,up),up));
             Workshop.Assemble();
+            Beams = new GameObject("Traktorstrahl").AddComponent<BeamNetwork>();
+            Beams.transform.SetParent(planet.transform.parent, false);
+            Beams.Initialize(planet, Elevator, Elevator.BeamSettings, IsFoundation);
             landscape = new GameObject("Landschaft").AddComponent<EarthLandscape>();
             landscape.transform.SetParent(planet.transform.parent, false);
             landscape.Populate(planet, view);
@@ -91,6 +99,7 @@ namespace PlanetHarvest.Mining
         {
             if (Workshop) Destroy(Workshop.gameObject);
             if (Elevator) Destroy(Elevator.gameObject);
+            if (Beams) Destroy(Beams.gameObject);
             if (landscape) Destroy(landscape.gameObject);
         }
 
@@ -113,6 +122,25 @@ namespace PlanetHarvest.Mining
         }
 
         /// <summary>Buys the next level of an upgrade axis at the workbench (host decides for guests).</summary>
+        private void BuildBeam()
+        {
+            if (!Physics.Raycast(view.transform.position, view.transform.forward, out var ground, BuildReach, ~0,
+                QueryTriggerInteraction.Ignore) || ground.collider.GetComponentInParent<VoxelPlanet>() != planet)
+            {
+                BuildMessage = "Mast braucht festen Boden";
+                return;
+            }
+            if (Crew.IsGuest) { Crew.Request("build", 0); BuildMessage = "Bauauftrag an den Host"; return; }
+            BuildMessage = Beams.TryBuild(ground.point, Elevator.Freight, out var reason)
+                ? (Beams.MastCount == 0 ? "Sammeltrichter gebaut" : $"Mast {Beams.MastCount} gebaut") : reason;
+        }
+
+        private void RemoveBeam()
+        {
+            if (Crew.IsGuest) { Crew.Request("unbuild", 0); return; }
+            BuildMessage = Beams.TryRemoveLast(Elevator.Freight) ? "Letztes Teil abgebaut" : "Abbau erst bei leerem Abschnitt";
+        }
+
         public bool ChooseUpgrade(UpgradeAxis axis)
         {
             if (Menu != FieldMenu.Workshop) return false;
@@ -128,6 +156,7 @@ namespace PlanetHarvest.Mining
             Target = MaterialId.None;
             Bin = null;
             AtWorkshop = false;
+            AtHopper = false;
             if (Menu != FieldMenu.Closed)
             {
                 if (hud && hud.EditingAddress && keys?.escapeKey.wasPressedThisFrame != true) return;
@@ -149,6 +178,8 @@ namespace PlanetHarvest.Mining
             if (keys?.rKey.wasPressedThisFrame == true || pad?.dpad.right.wasPressedThisFrame == true)
                 Profile = (DrillProfile)(((int)Profile + 1) % 3);
             Equipment.ReadSelection(Inventory);
+            if (keys?.bKey.wasPressedThisFrame == true || pad?.dpad.up.wasPressedThisFrame == true) BuildBeam();
+            if (keys?.nKey.wasPressedThisFrame == true || pad?.dpad.down.wasPressedThisFrame == true) RemoveBeam();
             var tool = MiningTools.Spec(Equipment.Tools.Active);
             float reach = Equipment.Slot == 0 ? tool.Reach : InteractReach;
             if (!Physics.Raycast(view.transform.position, view.transform.forward, out var hit,
@@ -157,6 +188,18 @@ namespace PlanetHarvest.Mining
             {
                 AtWorkshop = station == Workshop && hit.distance <= InteractReach;
                 if (AtWorkshop && player.InteractPressed) SetMenu(FieldMenu.Workshop);
+                return;
+            }
+            if (hit.collider.TryGetComponent(out BeamHopper _))
+            {
+                if (hit.distance > InteractReach) return;
+                AtHopper = true;
+                if (player.InteractPressed)
+                {
+                    if (Crew.IsGuest) Crew.Request("hopper", 0);
+                    else Beams.LoadHopper(Inventory);
+                    Equipment.Select(Equipment.Slot, Inventory);
+                }
                 return;
             }
             if (hit.collider.TryGetComponent(out EarthCargoBin bin))

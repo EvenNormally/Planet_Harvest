@@ -1033,6 +1033,7 @@ MonoBehaviour:
   soil: {fileID: 8032786488780637855}
   stone: {fileID: 6461796570822191438}
   contracts: {fileID: 11400000, guid: fce602cfede1423385e2ac019cd0f8fe, type: 2}
+  beamSettings: {fileID: 11400000, guid: 356d123c852d401b819c2012e6ed48e7, type: 2}
 --- !u!1 &4857454538395859932
 GameObject:
   m_ObjectHideFlags: 0

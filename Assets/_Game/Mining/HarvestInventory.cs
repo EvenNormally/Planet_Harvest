@@ -58,10 +58,14 @@ namespace PlanetHarvest.Mining
             return true;
         }
 
-        public long TransferTo(HarvestInventory destination, MaterialId material = MaterialId.Regolith)
+        public long TransferTo(HarvestInventory destination, MaterialId material = MaterialId.Regolith) =>
+            TransferTo(destination, material, long.MaxValue);
+
+        /// <summary>Moves up to <paramref name="limit"/> of one material. Returns the moved volume.</summary>
+        public long TransferTo(HarvestInventory destination, MaterialId material, long limit)
         {
-            if (InTransit || destination == null || ReferenceEquals(this, destination)) return 0;
-            long moved = Math.Min(AmountOf(material), destination.Free);
+            if (InTransit || destination == null || ReferenceEquals(this, destination) || limit <= 0) return 0;
+            long moved = Math.Min(Math.Min(AmountOf(material), destination.Free), limit);
             if (!destination.TryAdd(material, moved)) return 0;
             amounts[(int)material] -= moved;
             Amount -= moved;
