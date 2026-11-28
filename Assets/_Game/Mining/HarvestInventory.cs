@@ -8,7 +8,7 @@ namespace PlanetHarvest.Mining
     public sealed class HarvestInventory
     {
         public const long CubicMetre = 1000000;
-        private readonly long[] amounts = new long[(int)MaterialId.Quartz + 1];
+        private readonly long[] amounts = new long[MaterialSlots];
         private readonly MaterialId? acceptedMaterial;
         internal bool InTransit { get; set; }
         public long Amount { get; private set; }
@@ -25,7 +25,10 @@ namespace PlanetHarvest.Mining
             this.acceptedMaterial = acceptedMaterial;
         }
 
-        private static bool IsResource(MaterialId material) =>
+        /// <summary>Number of per-material slots; arrays indexed by <see cref="MaterialId"/> use this length.</summary>
+        public const int MaterialSlots = (int)MaterialId.Quartz + 1;
+
+        public static bool IsResource(MaterialId material) =>
             material >= MaterialId.Regolith && material <= MaterialId.Quartz;
 
         public long AmountOf(MaterialId material) => IsResource(material) ? amounts[(int)material] : 0;
