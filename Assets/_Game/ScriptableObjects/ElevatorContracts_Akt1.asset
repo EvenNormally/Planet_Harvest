@@ -20,6 +20,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 07c536d3dc184c8c8aa9e8fb7e1889fe, type: 2}
   - {fileID: 11400000, guid: ef06d33fa0234b10b92a21a58c06096f, type: 2}
   - {fileID: 11400000, guid: ba1651d05e6b4a3d974195d2a0a609d5, type: 2}
+  - {fileID: 11400000, guid: f0e9e45174224ce98b1a85452e45477d, type: 2}
   contracts:
   - id: landevertrag
     title: Landevertrag
@@ -57,3 +58,52 @@ MonoBehaviour:
       cubicMetres: 3
     - material: 5
       cubicMetres: 2
+  - id: lastenlift
+    title: Lastenlift
+    act: Akt 2
+    bonusCredits: 40
+    requirements:
+    - material: 2
+      cubicMetres: 60
+    - material: 4
+      cubicMetres: 8
+  - id: sortierhalle
+    title: Sortierhalle
+    act: Akt 2
+    bonusCredits: 50
+    requirements:
+    - material: 3
+      cubicMetres: 40
+    - material: 5
+      cubicMetres: 6
+    - material: 2
+      cubicMetres: 30
+  - id: kuehlkreislauf
+    title: Kühlkreislauf
+    act: Akt 3
+    bonusCredits: 60
+    requirements:
+    - material: 7
+      cubicMetres: 20
+    - material: 4
+      cubicMetres: 6
+  - id: biolabor
+    title: Biolabor
+    act: Akt 3
+    bonusCredits: 70
+    requirements:
+    - material: 7
+      cubicMetres: 20
+    - material: 8
+      cubicMetres: 10
+    - material: 5
+      cubicMetres: 4
+  - id: kristallresonator
+    title: Kristallresonator
+    act: Akt 3
+    bonusCredits: 100
+    requirements:
+    - material: 9
+      cubicMetres: 6
+    - material: 6
+      cubicMetres: 4

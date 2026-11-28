@@ -6,12 +6,15 @@ namespace PlanetHarvest.Planets
     // Planet-local metres. Positive density is solid. The field has no mutable random state.
     public sealed class EarthPlanetField
     {
-        public const int GeneratorVersion = 2;
+        public const int GeneratorVersion = 3;
+        /// <summary>Direction of the crystal cave, far from the landing site.</summary>
+        public static readonly Vector3 CrystalDirection = new Vector3(0.55f, -0.6f, 0.58f).normalized;
+        public const float CrystalCaveRadius = 4.6f, CrystalDepth = 15, ShaftRadius = 1.7f, RockZoneDepth = 13;
         private readonly int seed;
         private readonly float radius, amplitude, frequency, tunnelRadius, soilDepth, oreDepth, oreChance;
         private readonly Vector3 phases;
         private readonly Vector3[] passage;
-        private readonly Vector3 chamber, branchEnd, chamberVein;
+        private readonly Vector3 chamber, branchEnd, chamberVein, crystalCave, shaftTop;
         public int Extent => Mathf.CeilToInt(radius + amplitude + 1);
         public Vector3 SpawnDirection => new Vector3(0, radius, -7).normalized;
         public static readonly Vector3 LakeDirection = new Vector3(-0.34f, 1, 0.16f).normalized;
@@ -48,7 +51,13 @@ namespace PlanetHarvest.Planets
             chamber = passage[passage.Length - 1];
             branchEnd = passage[5] + Vector3.right * (7 + 2 * Mathf.Sin(phases.z));
             chamberVein = chamber - Vector3.right * (this.tunnelRadius + 1.2f);
+            float surface = SurfaceRadius(CrystalDirection);
+            crystalCave = CrystalDirection * (surface - CrystalDepth);
+            shaftTop = CrystalDirection * (surface + 2);
         }
+
+        /// <summary>Centre of the crystal cave in planet-local metres.</summary>
+        public Vector3 CrystalCave => crystalCave;
 
         public float SurfaceRadius(Vector3 direction)
         {
@@ -74,7 +83,9 @@ namespace PlanetHarvest.Planets
             nearest = Mathf.Min(nearest, SegmentDistanceSquared(p, passage[5], branchEnd));
             float gallery = Mathf.Sqrt(nearest) - tunnelRadius;
             float cavern = Vector3.Distance(p, chamber) - (tunnelRadius + 1.4f);
-            return Mathf.Min(depth, Mathf.Min(gallery, cavern));
+            float crystals = Vector3.Distance(p, crystalCave) - CrystalCaveRadius;
+            float shaft = Mathf.Sqrt(SegmentDistanceSquared(p, shaftTop, crystalCave)) - ShaftRadius;
+            return Mathf.Min(Mathf.Min(depth, Mathf.Min(gallery, cavern)), Mathf.Min(crystals, shaft));
         }
 
         public MaterialId MaterialAt(Vector3 p)
@@ -91,10 +102,21 @@ namespace PlanetHarvest.Planets
             // Accessible seams in the gallery lead prospectors towards the deeper chamber.
             if ((p - (passage[4] - Vector3.right * tunnelRadius)).sqrMagnitude < 5) return MaterialId.CopperOre;
             if ((p - (chamber + Vector3.right * (tunnelRadius + 1.4f))).sqrMagnitude < 5) return MaterialId.Quartz;
+            // The crystal cave walls glitter: a shell of crystal and quartz around the hollow.
+            float shell = Vector3.Distance(p, crystalCave) - CrystalCaveRadius;
+            if (shell < 1.6f)
+            {
+                Vector3Int facet = Vector3Int.FloorToInt(p / 1.5f);
+                float sparkle = UnitHash(facet.x, facet.y, facet.z, 7);
+                if (sparkle < 0.45f) return MaterialId.Crystal;
+                if (sparkle < 0.7f) return MaterialId.Quartz;
+            }
             if (depth < oreDepth) return MaterialId.Stone;
             if ((p - chamberVein).sqrMagnitude < 2.4f) return MaterialId.IronOre;
             Vector3Int key = Vector3Int.FloorToInt(p / 6);
-            if (UnitHash(key.x, key.y, key.z) >= oreChance) return MaterialId.Stone;
+            // Below the rock-zone depth iron veins are twice as frequent (Felszone).
+            float chance = depth > RockZoneDepth ? Mathf.Min(0.6f, oreChance * 2) : oreChance;
+            if (UnitHash(key.x, key.y, key.z) >= chance) return MaterialId.Stone;
             Vector3 offset = new Vector3(UnitHash(key.x, key.y, key.z, 1),
                 UnitHash(key.x, key.y, key.z, 2), UnitHash(key.x, key.y, key.z, 3));
             Vector3 delta = p - ((Vector3)(key * 6) + Vector3.one * 2 + offset * 2);

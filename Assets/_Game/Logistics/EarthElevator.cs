@@ -67,8 +67,8 @@ namespace PlanetHarvest.Logistics
             }
             if (!program.Contains(soil.Material)) soil.gameObject.SetActive(false);
             if (!program.Contains(stone.Material)) stone.gameObject.SetActive(false);
-            var deck = FieldProps.Part(transform, "Erzrampe", PrimitiveType.Cube, new Vector3(7.4f,-.19f,0),
-                new Vector3(9.9f,.52f,2.7f), new Color(.18f,.26f,.29f), hardware);
+            var deck = FieldProps.Part(transform, "Erzrampe", PrimitiveType.Cube, new Vector3(8.4f,-.19f,0),
+                new Vector3(11.9f,.52f,2.7f), new Color(.18f,.26f,.29f), hardware);
             deck.AddComponent<BoxCollider>();
             for (int i = 0; i < bins.Length; i++) bins[i].BuildGauge(hardware, program.Materials[i].Container, models);
             var model = models ? models.Spawn(GameModel.SpaceElevator, transform, hardware) : null;

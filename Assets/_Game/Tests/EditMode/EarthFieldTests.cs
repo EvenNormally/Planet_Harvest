@@ -47,6 +47,7 @@ namespace PlanetHarvest.Tests
                     case MaterialId.IronOre: Assert.GreaterOrEqual(depth, 7f); iron++; break;
                     case MaterialId.CopperOre: Assert.Greater(depth, 2f); copper++; break;
                     case MaterialId.Quartz: Assert.Greater(depth, 2f); quartz++; break;
+                    case MaterialId.Crystal: Assert.Greater(depth, 2f); break;
                     default: Assert.Fail(material.ToString()); break;
                 }
             }

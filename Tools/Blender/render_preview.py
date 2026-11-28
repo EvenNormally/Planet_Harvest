@@ -16,14 +16,14 @@ LAYOUT = [
     ("HandDrill", 6.0), ("Workbench", 0.8), ("TractorMast", 0.55), ("BeamHopper", 1.0), ("DrillRobot", 1.0),
     ("Pump", 0.85), ("AlienCrew", 1.4), ("Container_PressTub", 1.0), ("Container_Barrel", 1.0),
     ("Container_GlassSphere", 1.0), ("Container_OreHopper", 1.0), ("Container_MagneticBin", 1.0),
-    ("Container_PrismBox", 1.0), ("Container_OrganicTank", 1.0),
+    ("Container_PrismBox", 1.0), ("Container_OrganicTank", 1.0), ("Container_GlowPrism", 1.0),
 ]
 
 
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    columns = 7
+    columns = 8
     for index, (name, scale) in enumerate(LAYOUT):
         before = set(bpy.data.objects)
         bpy.ops.import_scene.fbx(filepath=os.path.join(MODELS, name + ".fbx"))

@@ -5,6 +5,7 @@ green/turquoise/mint landscape and devices, orange-yellow industry, violet accen
 model to Assets/_Game/Art/Models. Reproducible; run headless:
 
     blender --background --factory-startup --python Tools/Blender/build_models.py
+    blender --background --factory-startup --python Tools/Blender/build_models.py -- Container_GlowPrism   (only some)
 
 Coordinates in this file are given in Unity space (x right, y up, z forward, metres) and converted to
 Blender's Z-up space. Named child objects are the animated parts the game looks up by name
@@ -296,6 +297,12 @@ def containers():
             ("Kante", "cylinder", (0, 0.62, 0), (1.4, 0.06, 1.4), "violet", 6),
             ("Kristall", "cone", (0, 0.85, 0), (0.4, 0.5, 0.4), "quartz", 5, 0.0),
         ],
+        "Container_GlowPrism": [
+            ("Sockel", "cylinder", (0, -0.75, 0), (1.3, 0.2, 1.3), "graphite", 6),
+            ("Glasprisma", "cylinder", (0, -0.05, 0), (1.2, 1.2, 1.2), "glass", 3),
+            ("Leuchtkern", "facet", (0, -0.05, 0), (0.55, 0.8, 0.55), (0.55, 0.92, 1.0)),
+            ("Kappe", "cylinder", (0, 0.62, 0), (1.25, 0.1, 1.25), "violet", 3),
+        ],
         "Container_OrganicTank": [
             ("Tank", "cylinder", (0, -0.1, 0), (1.2, 1.5, 1.2), "leaf", 10),
             ("Deckel", "cylinder", (0, 0.7, 0), (1.25, 0.12, 1.25), "graphite", 10),
@@ -303,6 +310,8 @@ def containers():
         ],
     }
     for name, parts in specs.items():
+        if ONLY and name not in ONLY:
+            continue
         reset()
         r = root(name)
         objects = []
@@ -327,8 +336,13 @@ MODELS = [
 ]
 
 
+ONLY = set(sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else set()
+
+
 def main():
     for name, build in MODELS:
+        if ONLY and name not in ONLY:
+            continue
         reset()
         build()
         export(name)

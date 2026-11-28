@@ -35,6 +35,7 @@ namespace PlanetHarvest.Mining
                 MaterialId.Soil => new Color(.67f,.45f,.26f), MaterialId.IronOre => new Color(.82f,.36f,.18f),
                 MaterialId.CopperOre => new Color(.97f,.62f,.32f), MaterialId.Quartz => new Color(.84f,.76f,.98f),
                 MaterialId.Water => new Color(.45f,.7f,1f), MaterialId.Biomass => new Color(.45f,.78f,.35f),
+                MaterialId.Crystal => new Color(.55f,.95f,1f),
                 _ => new Color(.6f,.65f,.67f)
             };
             var force = dust.forceOverLifetime;
@@ -53,6 +54,29 @@ namespace PlanetHarvest.Mining
                     rotation3D = Random.insideUnitSphere * 180
                 };
                 dust.Emit(chip, 1);
+            }
+            dust.Play();
+        }
+
+        /// <summary>Colourful party burst for the confetti mushroom.</summary>
+        public void Confetti(Vector3 point, Vector3 up)
+        {
+            var force = dust.forceOverLifetime;
+            force.enabled = true;
+            force.space = ParticleSystemSimulationSpace.World;
+            force.x = -up.x * 3; force.y = -up.y * 3; force.z = -up.z * 3;
+            Color[] colors = { new Color(.98f,.6f,.16f), new Color(.62f,.38f,.95f), new Color(.38f,.84f,.68f), new Color(1f,.85f,.25f), Color.white };
+            for (int i = 0; i < 60; i++)
+            {
+                dust.Emit(new ParticleSystem.EmitParams
+                {
+                    position = point,
+                    velocity = up * Random.Range(2.5f, 5f) + Random.insideUnitSphere * 2.2f,
+                    startSize = Random.Range(.04f, .09f),
+                    startLifetime = Random.Range(.8f, 1.6f),
+                    startColor = colors[i % colors.Length],
+                    rotation3D = Random.insideUnitSphere * 180
+                }, 1);
             }
             dust.Play();
         }

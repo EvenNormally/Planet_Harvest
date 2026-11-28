@@ -27,3 +27,4 @@ MonoBehaviour:
   prismBox: {fileID: 919132149155446097, guid: 7931f86155bf47545ad9abb600e23f86, type: 3}
   glassSphere: {fileID: 919132149155446097, guid: 42f6b996765a3124ca1a22c1e19164da, type: 3}
   organicTank: {fileID: 919132149155446097, guid: d17dcba8d549b454b8dbfebce74b6aba, type: 3}
+  glowPrism: {fileID: 919132149155446097, guid: 05066e1a0e01ad14dbfb22fa75633676, type: 3}

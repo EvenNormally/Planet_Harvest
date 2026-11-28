@@ -13,7 +13,9 @@ namespace PlanetHarvest.Mining
         /// <summary>Pumped from finite reservoirs, not part of the voxel terrain.</summary>
         Water = 7,
         /// <summary>Harvested from plants, not part of the voxel terrain.</summary>
-        Biomass = 8
+        Biomass = 8,
+        /// <summary>Glowing crystals lining the crystal cave.</summary>
+        Crystal = 9
     }
 
     public static class HarvestMaterial
@@ -28,10 +30,11 @@ namespace PlanetHarvest.Mining
             MaterialId.Quartz => "Quarz",
             MaterialId.Water => "Wasser",
             MaterialId.Biomass => "Biomasse",
+            MaterialId.Crystal => "Kristall",
             _ => "Luft"
         };
 
         /// <summary>True for materials of the solid voxel planet, which define the global extraction quota.</summary>
-        public static bool IsTerrain(this MaterialId material) => material >= MaterialId.Regolith && material <= MaterialId.Quartz;
+        public static bool IsTerrain(this MaterialId material) => (material >= MaterialId.Regolith && material <= MaterialId.Quartz) || material == MaterialId.Crystal;
     }
 }

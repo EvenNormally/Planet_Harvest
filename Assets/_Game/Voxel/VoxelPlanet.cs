@@ -165,7 +165,7 @@ namespace PlanetHarvest.Voxel
                 int layer = resource switch
                 {
                     MaterialId.Stone => 1, MaterialId.IronOre => 2,
-                    MaterialId.CopperOre => 3, MaterialId.Quartz => 4, _ => 0
+                    MaterialId.CopperOre => 3, MaterialId.Quartz => 4, MaterialId.Crystal => 4, _ => 0
                 };
                 var faceTriangles = indices[layer];
                 var faceOwners = cells[layer];

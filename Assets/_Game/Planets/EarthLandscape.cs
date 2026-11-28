@@ -19,6 +19,10 @@ namespace PlanetHarvest.Planets
         public IEnumerable<Vector3Int> Harvested => harvested;
         public int HarvestedCount => harvested.Count;
         public IEnumerable<Vector3Int> PlantKeys => trees.Keys;
+        public Transform Mushroom { get; private set; }
+        public int ConfettiPops { get; private set; }
+        private Mining.MiningDebris confetti;
+        private float squash;
 
         public void Populate(VoxelPlanet moon, Camera camera)
         {
@@ -52,12 +56,54 @@ namespace PlanetHarvest.Planets
                 Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * (8.5f + i % 3);
                 Plant((EarthPlanetField.LakeDirection * moon.Earth.Radius + offset).normalized, i);
             }
+            PlaceMushroom(moon.Earth);
             planet.CellMined += RemoveUnsupportedTree;
             planet.CellRestored += RestoreTree;
         }
 
+        // Easter egg: a confetti mushroom on the floor of the crystal cave.
+        private void PlaceMushroom(EarthPlanetField field)
+        {
+            Vector3 up = EarthPlanetField.CrystalDirection;
+            Vector3 floor = field.CrystalCave - up * (EarthPlanetField.CrystalCaveRadius - .05f);
+            Mushroom = new GameObject("Konfetti-Pilz").transform;
+            Mushroom.SetParent(transform, false);
+            Mushroom.localPosition = floor;
+            Mushroom.localRotation = Quaternion.FromToRotation(Vector3.up, up);
+            FieldProps.Part(Mushroom, "Stiel", PrimitiveType.Cylinder, Vector3.up * .25f, new Vector3(.18f, .25f, .18f), new Color(.96f, .94f, .88f), foliage);
+            FieldProps.Part(Mushroom, "Hut", PrimitiveType.Sphere, Vector3.up * .55f, new Vector3(.62f, .32f, .62f), new Color(.62f, .38f, .95f), foliage);
+            for (int i = 0; i < 5; i++)
+            {
+                float angle = i * 72 * Mathf.Deg2Rad;
+                FieldProps.Part(Mushroom, "Tupfen", PrimitiveType.Sphere, new Vector3(Mathf.Cos(angle) * .2f, .66f, Mathf.Sin(angle) * .2f),
+                    Vector3.one * .08f, Color.white, foliage);
+            }
+            confetti = new GameObject("Konfetti").AddComponent<Mining.MiningDebris>();
+            confetti.transform.SetParent(transform, false);
+            confetti.Prepare(Resources.GetBuiltinResource<Mesh>("Cube.fbx"));
+        }
+
+        /// <summary>Pops the mushroom if the view ray passes its cap within reach.</summary>
+        public bool TryPopMushroom(Vector3 origin, Vector3 direction, float reach)
+        {
+            if (!Mushroom || squash > 0) return false;
+            Vector3 cap = Mushroom.position + Mushroom.up * .5f;
+            float along = Vector3.Dot(cap - origin, direction);
+            if (along <= 0 || along > reach || (cap - (origin + direction * along)).sqrMagnitude > .45f * .45f) return false;
+            ConfettiPops++;
+            squash = 1;
+            confetti.Confetti(cap, Mushroom.up);
+            return true;
+        }
+
         private void LateUpdate()
         {
+            if (Mushroom)
+            {
+                squash = Mathf.Max(0, squash - Time.deltaTime * .8f);
+                float bounce = Mathf.Sin(squash * Mathf.PI * 4) * squash * .35f;
+                Mushroom.localScale = new Vector3(1 + bounce, 1 - bounce, 1 + bounce);
+            }
             if (view) sky.SetVector("_LocalUp", (view.transform.position - transform.position).normalized);
         }
 

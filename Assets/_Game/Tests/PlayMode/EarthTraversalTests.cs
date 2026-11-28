@@ -74,9 +74,12 @@ namespace PlanetHarvest.Tests
                     var ray = new Ray((a + b + c) / 3 + n * 0.05f, -n);
                     if (!collider.Raycast(ray, out var hit, 0.1f)) continue;
                     var cell = planet.CellAt(hit);
-                    Assert.AreEqual(types[submesh], planet.Data.MaterialAt(cell));
+                    // Crystal shares the quartz layer (submesh 4) since generator version 3.
+                    var expected = types[submesh] == MaterialId.Quartz && planet.Data.MaterialAt(cell) == MaterialId.Crystal
+                        ? MaterialId.Crystal : types[submesh];
+                    Assert.AreEqual(expected, planet.Data.MaterialAt(cell));
                     Assert.IsTrue(planet.TryMine(inventory, cell, out var material));
-                    Assert.AreEqual(types[submesh], material);
+                    Assert.AreEqual(expected, material);
                     Assert.AreEqual(HarvestInventory.CubicMetre, inventory.AmountOf(material));
                     Assert.IsFalse(planet.TryMine(inventory, cell, out var air));
                     Assert.AreEqual(MaterialId.None, air);

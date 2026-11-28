@@ -81,7 +81,7 @@ namespace PlanetHarvest.Core
         /// <summary>Keys of harvested plants; absent before version 4.</summary>
         public Vector3Int[] plants;
 
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
 
         /// <summary>Migrates older save layouts in place to <see cref="CurrentVersion"/>.</summary>
         public void Upgrade(FreightProgram program)
@@ -112,6 +112,20 @@ namespace PlanetHarvest.Core
                 water = null;
                 plants = null;
                 version = 4;
+            }
+            if (version == 4)
+            {
+                // Crystal extends the per-material arrays once more.
+                host?.PadMaterials();
+                guest?.PadMaterials();
+                if (freight != null)
+                {
+                    freight.deliveredByMaterial = Pad(freight.deliveredByMaterial);
+                    freight.loadsByMaterial = Pad(freight.loadsByMaterial);
+                }
+                if (logistics?.chain != null) logistics.chain.hopper = Pad(logistics.chain.hopper);
+                if (robot != null) robot.hopper = Pad(robot.hopper);
+                version = 5;
             }
         }
 

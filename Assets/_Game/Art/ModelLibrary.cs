@@ -16,7 +16,7 @@ namespace PlanetHarvest.Art
     public sealed class ModelLibrary : ScriptableObject
     {
         [SerializeField] private GameObject handDrill, workbench, tractorMast, beamHopper, drillRobot, pump, alienCrew, spaceElevator;
-        [SerializeField] private GameObject pressTub, barrel, oreHopper, magneticBin, prismBox, glassSphere, organicTank;
+        [SerializeField] private GameObject pressTub, barrel, oreHopper, magneticBin, prismBox, glassSphere, organicTank, glowPrism;
 
         public GameObject Prefab(GameModel model) => model switch
         {
@@ -29,7 +29,8 @@ namespace PlanetHarvest.Art
         {
             ContainerKind.PressTub => pressTub, ContainerKind.Barrel => barrel, ContainerKind.OreHopper => oreHopper,
             ContainerKind.MagneticBin => magneticBin, ContainerKind.PrismBox => prismBox,
-            ContainerKind.GlassSphere => glassSphere, ContainerKind.OrganicTank => organicTank, _ => null
+            ContainerKind.GlassSphere => glassSphere, ContainerKind.OrganicTank => organicTank,
+            ContainerKind.GlowPrism => glowPrism, _ => null
         };
 
         /// <summary>Instantiates a model under a parent; null when the model is not assigned.</summary>

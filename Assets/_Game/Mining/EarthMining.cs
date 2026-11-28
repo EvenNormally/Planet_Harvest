@@ -65,7 +65,7 @@ namespace PlanetHarvest.Mining
             Vector3 p = planet.transform.TransformPoint((Vector3)cell + Vector3.one * .5f);
             Vector3 dock = Elevator.transform.InverseTransformPoint(p);
             Vector3 shop = Workshop.transform.InverseTransformPoint(p);
-            return (dock.x > -3.5f && dock.x < 12.4f && Mathf.Abs(dock.z) < 2 && Mathf.Abs(dock.y) < 2) ||
+            return (dock.x > -3.5f && dock.x < 14.4f && Mathf.Abs(dock.z) < 2 && Mathf.Abs(dock.y) < 2) ||
                 (Mathf.Abs(shop.x) < 1.4f && Mathf.Abs(shop.z) < 1 && Mathf.Abs(shop.y) < 1.5f);
         }
         public MaterialId Target { get; private set; }
@@ -237,6 +237,13 @@ namespace PlanetHarvest.Mining
             float reach = Equipment.Slot == 0 ? tool.Reach : InteractReach;
             bool hitSomething = Physics.Raycast(view.transform.position, view.transform.forward, out var hit,
                 reach, ~0, QueryTriggerInteraction.Ignore);
+            if (Equipment.Slot == 0 && (player.MinePressed || player.MineHeld) &&
+                landscape.TryPopMushroom(view.transform.position, view.transform.forward, hitSomething ? hit.distance + .3f : reach))
+            {
+                BuildMessage = $"Konfetti-Pilz! ({landscape.ConfettiPops}× gefunden)";
+                Equipment.Strike();
+                return;
+            }
             if (Equipment.Slot == 0 && landscape.TryFindPlant(view.transform.position, view.transform.forward,
                 hitSomething ? hit.distance + .3f : reach, out var plant))
             {
