@@ -64,7 +64,7 @@ namespace PlanetHarvest.Core
         public MinerSnapshot host, guest;
         public FreightSnapshot freight;
 
-        public void Validate(VoxelMoon moon, bool full)
+        public void Validate(VoxelPlanet moon, bool full)
         {
             if (version != 1 || world != moon.WorldKey || host == null || guest == null || freight == null)
                 throw new InvalidDataException("Spielstand oder Planetenversion passt nicht.");

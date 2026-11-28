@@ -58,9 +58,10 @@ Progression, UI, Audio, Art (Materials/Models/Textures/Shaders), Prefabs, Scenes
 ScriptableObjects, Editor, Tests (EditMode/PlayMode).
 Drittanbieter gehören nach `Assets/ThirdParty/`; bestehende Template-Assets bleiben an ihrem Ort.
 
-**Achtung:** Unity behandelt Ordner namens `Resources` speziell. Dieser gewünschte
-Ordner bleibt vorerst leer; Material-Domaincode wird bevorzugt in Mining/Core organisiert.
-Große Terrain- oder Art-Daten nicht versehentlich in Resources legen.
+**Achtung:** Unity behandelt Ordner namens `Resources` speziell. `Assets/_Game/Resources`
+enthält die Shader `EarthSky`, `FieldFinish` und `LakeWater`, die per `Resources.Load`
+geladen werden und deshalb dort bleiben müssen. Große Terrain- oder Art-Daten nicht in
+Resources legen.
 
 ## Zusammenarbeit und Prüfung
 
@@ -77,6 +78,11 @@ unity test . --mode PlayMode --output Logs/playmode-results.xml
 Vor Batch-Tests den interaktiven Editor regulär schließen. CI prüft die Repositorystruktur;
 Unity-Lizenz und Editor-Tests werden lokal geprüft. Kein Cloud-Unity-Test wird vorgetäuscht.
 
-Weitere Dokumente: [Aktuelle Spielrichtung](Docs/CURRENT_GAME_DIRECTION.md), [Architektur](ARCHITECTURE.md), [Spielidee](GAME_DESIGN.md),
+Maßgebliches Design-Dokument ist
+[Docs/Design/Planet_Harvest_Spieldesign_und_Entwicklungsplan.docx](Docs/Design/Planet_Harvest_Spieldesign_und_Entwicklungsplan.docx)
+(Konzeptversion 1.0); bei Widersprüchen zu älteren Markdown-Dokumenten gilt dieses.
+
+Weitere Dokumente: [Aktuelle Spielrichtung](Docs/CURRENT_GAME_DIRECTION.md), [Architektur](ARCHITECTURE.md),
 [Spielkonzept](Docs/GAME_CONCEPT.md), [Codex-Implementierungsplan](Docs/IMPLEMENTATION_PLAN.md),
-[Roadmap](DEVELOPMENT_ROADMAP.md), [Prüfbericht](Docs/SETUP_REPORT.md).
+[Roadmap](DEVELOPMENT_ROADMAP.md), Archiv: [Spielidee (historisch)](Docs/Archive/GAME_DESIGN.md),
+[Prüfbericht](Docs/Archive/SETUP_REPORT.md).

@@ -9,12 +9,12 @@ using UnityEngine.InputSystem;
 
 namespace PlanetHarvest.Mining
 {
-    public enum FieldMenu { Closed, Inventory, Workshop }
-
     [DefaultExecutionOrder(-10), RequireComponent(typeof(RadialPlayer))]
     public sealed class EarthMining : MonoBehaviour
     {
-        [SerializeField] private VoxelMoon planet;
+        public const float InteractReach = 5f;
+
+        [SerializeField] private VoxelPlanet planet;
         [SerializeField] private Camera view;
         [SerializeField] private FieldEquipment equipmentPrefab;
         [SerializeField] private EarthElevator elevatorPrefab;
@@ -34,7 +34,7 @@ namespace PlanetHarvest.Mining
         public HarvestInventory Inventory { get; } = new HarvestInventory(PackCapacity);
         public DrillProfile Profile { get; internal set; }
         public ExpeditionCrew Crew { get; private set; }
-        public VoxelMoon Planet => planet;
+        public VoxelPlanet Planet => planet;
         internal Camera View => view;
         private readonly List<Vector3Int> cut = new List<Vector3Int>(64);
         internal List<Vector3Int> Cut(HarvestInventory pack, MiningTool tool, DrillProfile profile,
@@ -70,7 +70,7 @@ namespace PlanetHarvest.Mining
             Vector3 direction = (planet.Earth.SpawnDirection * planet.Earth.Radius + new Vector3(-5,0,5)).normalized;
             Vector3 up = planet.transform.TransformDirection(direction);
             Vector3 foot = planet.transform.TransformPoint(direction * planet.Earth.SurfaceRadius(direction));
-            if (Physics.Raycast(foot + up*7, -up, out var ground, 14) && ground.collider.GetComponentInParent<VoxelMoon>() == planet)
+            if (Physics.Raycast(foot + up*7, -up, out var ground, 14) && ground.collider.GetComponentInParent<VoxelPlanet>() == planet)
                 foot = ground.point;
             Workshop.transform.SetPositionAndRotation(foot, Quaternion.LookRotation(Vector3.ProjectOnPlane(planet.transform.forward,up),up));
             Workshop.Assemble();
@@ -138,18 +138,18 @@ namespace PlanetHarvest.Mining
                 Profile = (DrillProfile)(((int)Profile + 1) % 3);
             Equipment.ReadSelection(Inventory);
             var tool = MiningTools.Spec(Equipment.Tools.Active);
-            float reach = Equipment.Slot == 0 ? tool.Reach : HarvestInteraction.Reach;
+            float reach = Equipment.Slot == 0 ? tool.Reach : InteractReach;
             if (!Physics.Raycast(view.transform.position, view.transform.forward, out var hit,
                 reach, ~0, QueryTriggerInteraction.Ignore)) return;
             if (hit.collider.TryGetComponent(out ToolStation station))
             {
-                AtWorkshop = station == Workshop && hit.distance <= HarvestInteraction.Reach;
+                AtWorkshop = station == Workshop && hit.distance <= InteractReach;
                 if (AtWorkshop && player.InteractPressed) SetMenu(FieldMenu.Workshop);
                 return;
             }
             if (hit.collider.TryGetComponent(out EarthCargoBin bin))
             {
-                if (hit.distance > HarvestInteraction.Reach) return;
+                if (hit.distance > InteractReach) return;
                 Bin = bin;
                 if (player.InteractPressed || (player.MinePressed && Equipment.HeldMaterial == bin.Material))
                 {
@@ -159,7 +159,7 @@ namespace PlanetHarvest.Mining
                 }
                 return;
             }
-            if (hit.collider.GetComponentInParent<VoxelMoon>() != planet) return;
+            if (hit.collider.GetComponentInParent<VoxelPlanet>() != planet) return;
             var cell = planet.CellAt(hit);
             Target = planet.Data.MaterialAt(cell);
             bool strike = tool.RepeatSeconds > 0 ? player.MineHeld && Time.time >= nextStrike : player.MinePressed;

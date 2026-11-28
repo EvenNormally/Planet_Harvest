@@ -1,8 +1,8 @@
 # Planet Harvest – Spielidee
 
-**Historischer Entwurf.** Seit dem 27. November 2026 gilt der [Entwicklungsstand des ersten Prototyps](Docs/CURRENT_GAME_DIRECTION.md). Die folgenden Abschnitte dokumentieren frühere Planungen.
+**Historischer Entwurf.** Seit dem 27. November 2026 gilt der [Entwicklungsstand des ersten Prototyps](../CURRENT_GAME_DIRECTION.md). Die folgenden Abschnitte dokumentieren frühere Planungen.
 
-Die ausführliche Fassung mit Spielregeln, erstem spielbaren Umfang und offenen Entscheidungen steht in [Docs/GAME_CONCEPT.md](Docs/GAME_CONCEPT.md). Einzelne Codex-Aufträge stehen in [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md). Dieses Dokument bleibt die kurze Übersicht.
+Die ausführliche Fassung mit Spielregeln, erstem spielbaren Umfang und offenen Entscheidungen steht in [Docs/GAME_CONCEPT.md](../GAME_CONCEPT.md). Einzelne Codex-Aufträge stehen in [Docs/IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md). Dieses Dokument bleibt die kurze Übersicht.
 
 First-Person-Mining und Automatisierung auf kugelförmigen Planeten für Windows PC.
 Der Spieler beginnt auf einem kleinen Mond mit einfachem Bohrer und kleinen Containern.

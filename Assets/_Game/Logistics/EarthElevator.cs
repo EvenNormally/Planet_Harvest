@@ -17,7 +17,7 @@ namespace PlanetHarvest.Logistics
         public bool Replica { get; set; }
         public EarthFreight Freight { get; } = new EarthFreight();
 
-        public void Place(VoxelMoon planet)
+        public void Place(VoxelPlanet planet)
         {
             Vector3 spawn = planet.Earth.SpawnDirection;
             Vector3 local = (spawn * planet.Earth.SurfaceRadius(spawn) + new Vector3(6, 0, 9)).normalized;
@@ -25,7 +25,7 @@ namespace PlanetHarvest.Logistics
             Vector3 origin = planet.transform.position + up * (planet.Earth.Extent + 4);
             Vector3 foot = planet.transform.TransformPoint(local * planet.Earth.SurfaceRadius(local));
             if (Physics.Raycast(origin, -up, out var hit, planet.Earth.Extent, ~0, QueryTriggerInteraction.Ignore)
-                && hit.collider.GetComponentInParent<VoxelMoon>() == planet) foot = hit.point;
+                && hit.collider.GetComponentInParent<VoxelPlanet>() == planet) foot = hit.point;
             transform.SetPositionAndRotation(foot, Quaternion.LookRotation(Vector3.ProjectOnPlane(planet.transform.forward, up), up));
             hardware = FieldProps.Finish();
             bins = new EarthCargoBin[EarthFreight.LevelCount];

@@ -481,7 +481,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f8486340b34b6604b864ea3cf3993c8c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: PlanetHarvest.Runtime::PlanetHarvest.Voxel.VoxelMoon
+  m_EditorClassIdentifier: PlanetHarvest.Runtime::PlanetHarvest.Voxel.VoxelPlanet
   settings: {fileID: 0}
   material: {fileID: 2100000, guid: a304768eb1e24c8da3d03882468d2bb6, type: 2}
   stoneMaterial: {fileID: 2100000, guid: 4ec2ea27bfbe42a8b617d6dc5182d10a, type: 2}

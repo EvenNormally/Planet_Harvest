@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 
 namespace PlanetHarvest.Voxel
 {
-    public sealed class VoxelMoon : MonoBehaviour
+    public sealed class VoxelPlanet : MonoBehaviour
     {
         [SerializeField] private HarvestSettings settings;
         [SerializeField] private Material material;
@@ -232,7 +232,7 @@ namespace PlanetHarvest.Voxel
             Physics.SyncTransforms();
             float nearest = float.PositiveInfinity;
             foreach (var hit in Physics.RaycastAll(origin, -up, Earth.Extent, ~0, QueryTriggerInteraction.Ignore))
-                if (hit.collider.GetComponentInParent<VoxelMoon>() == this)
+                if (hit.collider.GetComponentInParent<VoxelPlanet>() == this)
                     nearest = Mathf.Min(nearest, hit.distance);
             if (!float.IsPositiveInfinity(nearest)) return origin - up * (nearest - 1.25f);
             throw new System.InvalidOperationException("The spawn has no terrain collider.");

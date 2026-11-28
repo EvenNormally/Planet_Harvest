@@ -20,4 +20,6 @@
 *.wav filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.exr filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+Docs/Design/Konzeptbild_Bohrmission.png filter=lfs diff=lfs merge=lfs -text
 # PNG stays in normal Git; add explicit paths for large textures after review.

@@ -7,13 +7,13 @@ namespace PlanetHarvest.Planets
 {
     public sealed class EarthLandscape : MonoBehaviour
     {
-        private VoxelMoon planet;
+        private VoxelPlanet planet;
         private Camera view;
         private Material sky, water, foliage;
         private Mesh treeMesh, lakeMesh;
         private readonly Dictionary<Vector3Int, GameObject> trees = new Dictionary<Vector3Int, GameObject>();
 
-        public void Populate(VoxelMoon moon, Camera camera)
+        public void Populate(VoxelPlanet moon, Camera camera)
         {
             planet = moon;
             view = camera;
@@ -61,7 +61,7 @@ namespace PlanetHarvest.Planets
             if ((normal - EarthPlanetField.LakeDirection).sqrMagnitude * field.Radius * field.Radius < 53 ||
                 (point.y > field.Radius * .55f && point.z > -14 && point.z < 31 && point.x > -6 && point.x < 16)) return;
             var ray = new Ray(transform.TransformPoint(normal * (field.Extent + 3)), transform.TransformDirection(-normal));
-            if (!Physics.Raycast(ray, out var hit, 23) || hit.collider.GetComponentInParent<VoxelMoon>() != planet ||
+            if (!Physics.Raycast(ray, out var hit, 23) || hit.collider.GetComponentInParent<VoxelPlanet>() != planet ||
                 Vector3.Dot(hit.normal, -ray.direction) < .7f) return;
             Vector3Int cell = planet.CellAt(hit);
             if (trees.ContainsKey(cell)) return;

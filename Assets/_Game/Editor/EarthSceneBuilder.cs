@@ -35,7 +35,7 @@ namespace PlanetHarvest.Editor
                 settings = ScriptableObject.CreateInstance<EarthPlanetSettings>();
                 AssetDatabase.CreateAsset(settings, SettingsPath);
             }
-            var planet = new GameObject("Startplanet").AddComponent<VoxelMoon>();
+            var planet = new GameObject("Startplanet").AddComponent<VoxelPlanet>();
             Set(planet, "earthSettings", settings);
             Set(planet, "material", Load<Material>("Assets/_Game/Art/Materials/EarthSoil.mat"));
             Set(planet, "stoneMaterial", Load<Material>("Assets/_Game/Art/Materials/EarthStone.mat"));
@@ -82,7 +82,7 @@ namespace PlanetHarvest.Editor
         private static T Load<T>(string path) where T : UnityEngine.Object =>
             AssetDatabase.LoadAssetAtPath<T>(path) ?? throw new InvalidOperationException(path);
 
-        internal static void AddMining(GameObject player, VoxelMoon planet, Camera camera)
+        internal static void AddMining(GameObject player, VoxelPlanet planet, Camera camera)
         {
             var mining = player.GetComponent<EarthMining>() ?? player.AddComponent<EarthMining>();
             Set(mining, "planet", planet);

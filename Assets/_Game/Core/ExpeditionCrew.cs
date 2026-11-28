@@ -296,11 +296,11 @@ namespace PlanetHarvest.Core
             }
             if (!((p.eye - p.position).sqrMagnitude < 4 && p.forward.sqrMagnitude > .98f && p.forward.sqrMagnitude < 1.02f)) return;
             var spec = MiningTools.Spec(otherTools.Active);
-            float reach = p.kind == "load" ? HarvestInteraction.Reach : spec.Reach;
+            float reach = p.kind == "load" ? EarthMining.InteractReach : spec.Reach;
             if (!Physics.Raycast(p.eye, p.forward, out var hit, reach, ~0, QueryTriggerInteraction.Ignore)) return;
             if (p.kind == "load" && hit.collider.TryGetComponent(out EarthCargoBin bin) && (int)bin.Material == p.choice)
                 if (miner.Elevator.Freight.Load(otherPack, bin.Material) == 0) miner.Elevator.Freight.Dispatch(bin.Material);
-            if (p.kind == "cut" && Time.unscaledTime >= nextGuestCut && hit.collider.GetComponentInParent<Voxel.VoxelMoon>() == miner.Planet)
+            if (p.kind == "cut" && Time.unscaledTime >= nextGuestCut && hit.collider.GetComponentInParent<Voxel.VoxelPlanet>() == miner.Planet)
             {
                 nextGuestCut = Time.unscaledTime + spec.RepeatSeconds;
                 if (miner.Planet.CellAt(hit) == p.contact) miner.Cut(otherPack, otherTools.Active, p.profile, p.contact, p.forward);

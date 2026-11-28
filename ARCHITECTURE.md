@@ -2,7 +2,7 @@
 
 ## Spielbare Erd-Szene
 
-`EarthVoxelGrid` sampelt das feste Dichtefeld. `VoxelData` führt entfernte Materialzellen und aktualisierte Dichten. Der Surface-Net-Mesher von `VoxelMoon` berechnet gemeinsame Randvertices aus benachbarten Samples. Ein Schnitt markiert die betroffenen Chunks einschließlich ihrer Randnachbarn. Pro Frame werden bis zu vier Meshes und Collider aktualisiert. Vollständige Wiederherstellung aktualisiert die betroffene Geometrie vor dem Versetzen der Spieler.
+`EarthVoxelGrid` sampelt das feste Dichtefeld. `VoxelData` führt entfernte Materialzellen und aktualisierte Dichten. Der Surface-Net-Mesher von `VoxelPlanet` berechnet gemeinsame Randvertices aus benachbarten Samples. Ein Schnitt markiert die betroffenen Chunks einschließlich ihrer Randnachbarn. Pro Frame werden bis zu vier Meshes und Collider aktualisiert. Vollständige Wiederherstellung aktualisiert die betroffene Geometrie vor dem Versetzen der Spieler.
 
 `DrillStroke` bucht jeden abgebauten Kubikmeter in genau einen Rucksack. `EarthFreight` verbucht den Frachtwert bei Ankunft im Orbit und führt exportierte Volumen pro Material. `ExpeditionCrew` betreibt dieselben Regeln im Solo- und Hostbetrieb. Ein Gast sendet Bewegungszustand und Bedienabsicht. Der Host prüft den Zielstrahl, die Werkzeugreichweite, den Takt und die freie Kapazität. Eine geordnete TCP-Verbindung überträgt beim Beitritt einen vollständigen Snapshot und danach die neu entfernten Zellen. Beim Laden wechselt die Weltgeneration für ausstehende Netzwerkbefehle.
 

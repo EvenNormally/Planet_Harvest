@@ -25,7 +25,7 @@ namespace PlanetHarvest.Tests
                 yield return SceneManager.LoadSceneAsync(ScenePath);
                 yield return new WaitForSeconds(0.6f);
                 var player = Object.FindFirstObjectByType<RadialPlayer>();
-                var planet = Object.FindFirstObjectByType<VoxelMoon>();
+                var planet = Object.FindFirstObjectByType<VoxelPlanet>();
                 Vector3 start = player.transform.position;
                 Assert.IsTrue(player.IsGrounded);
                 HoldStick(pad, Vector2.up);
@@ -35,7 +35,7 @@ namespace PlanetHarvest.Tests
                 Vector3 inside = player.transform.position;
                 Assert.GreaterOrEqual(planet.Earth.Depth(inside), 6, $"Stopped at {inside}");
                 Assert.IsTrue(Physics.Raycast(inside, inside.normalized, out var roof, 7));
-                Assert.AreEqual(planet, roof.collider.GetComponentInParent<VoxelMoon>());
+                Assert.AreEqual(planet, roof.collider.GetComponentInParent<VoxelPlanet>());
                 HoldStick(pad, Vector2.down);
                 deadline = Time.time + 15;
                 while (Vector3.Distance(start, player.transform.position) > 1.6f && Time.time < deadline)
@@ -56,7 +56,7 @@ namespace PlanetHarvest.Tests
         public IEnumerator PickedTrianglesYieldExactlyOneCellOfEachMaterial()
         {
             yield return SceneManager.LoadSceneAsync(ScenePath);
-            var planet = Object.FindFirstObjectByType<VoxelMoon>();
+            var planet = Object.FindFirstObjectByType<VoxelPlanet>();
             var inventory = Object.FindFirstObjectByType<EarthMining>().Inventory;
             var types = new[] { MaterialId.Soil, MaterialId.Stone, MaterialId.IronOre, MaterialId.CopperOre, MaterialId.Quartz };
             for (int submesh = 0; submesh < types.Length; submesh++)
@@ -93,7 +93,7 @@ namespace PlanetHarvest.Tests
         public IEnumerator RenderedSurfaceAndCaveAreClosedAcrossChunkBoundaries()
         {
             yield return SceneManager.LoadSceneAsync(ScenePath);
-            var planet = Object.FindFirstObjectByType<VoxelMoon>();
+            var planet = Object.FindFirstObjectByType<VoxelPlanet>();
             var edges = new Dictionary<(Vector3, Vector3), int>();
             foreach (var filter in planet.GetComponentsInChildren<MeshFilter>())
             {

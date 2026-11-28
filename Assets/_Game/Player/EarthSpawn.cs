@@ -6,7 +6,7 @@ namespace PlanetHarvest.Player
     [RequireComponent(typeof(RadialPlayer))]
     public sealed class EarthSpawn : MonoBehaviour
     {
-        [SerializeField] private VoxelMoon planet;
+        [SerializeField] private VoxelPlanet planet;
 
         private void Start()
         {

@@ -22,7 +22,7 @@ beschreiben den historischen Setup-Zustand; Gameplay ist inzwischen implementier
   200 m Radius, 9,81 m/s² radiale Gravitation, 2-m-Abbauraster, ausschließlich Regolith.
   Die ursprünglichen Grenzvertices werden gemeinsam auf die Kugel projiziert;
   Mesh und MeshCollider sind abgerundet, Abbaulöcher bleiben volumetrisch.
-- `VoxelData`: implizite Kugel plus entfernte Zellen; `VoxelMoon`: Oberflächen-Chunks
+- `VoxelData`: implizite Kugel plus entfernte Zellen; `VoxelPlanet`: Oberflächen-Chunks
   mit MeshCollider, bei Abbau werden betroffene Nachbar-Chunks aktualisiert/angelegt.
 - `HarvestSession` besitzt Inventare und Versandzustand; `HarvestGame` treibt die Zeit.
   Testkonfiguration: 8 m³ persönlicher Kanister, 32 m³ Versandkanister, 8 s Hin-/Rückflug.
@@ -55,7 +55,7 @@ Editor-/Testassemblies werden getrennt von künftigem Runtime-Code gehalten.
 
 Bestätigte Tools: Git 2.53.0, LFS 3.7.1, Codex 0.163.0 mit Anmeldung,
 Unity-Plugin 0.1.8-beta aktiv; CLI auf 1.0.0-beta.16 aktualisiert.
-Aktuelle Validierung und Editor-Verbindungsstatus: ../SETUP_REPORT.md.
+Aktuelle Validierung und Editor-Verbindungsstatus: ../Archive/SETUP_REPORT.md.
 Keine zusätzlichen fremden Agent-Plugins installiert.
 
 Geplant: Chunk-Terrain, radiale Gravitation, Mining, Inventar, Logistik und Wirtschaft.

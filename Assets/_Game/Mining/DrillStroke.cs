@@ -17,7 +17,7 @@ namespace PlanetHarvest.Mining
         };
 
         // Each solid sample represents one cubic metre in the prototype ledger.
-        public static void Cut(VoxelMoon moon, HarvestInventory pack, Vector3Int contact, Vector3 axis,
+        public static void Cut(VoxelPlanet moon, HarvestInventory pack, Vector3Int contact, Vector3 axis,
             DrillProfile profile, float scale, Predicate<Vector3Int> protectedCell, List<Vector3Int> changed)
         {
             changed.Clear();
