@@ -37,7 +37,7 @@ namespace PlanetHarvest.UI
         private EventSystem events;
         private float nextRefresh;
         private (int slot, MaterialId target, MaterialId bin, bool shop, int inventory, int freight,
-            MiningTool active, FieldMenu menu, int upgrades) last;
+            MiningTool active, FieldMenu menu, int upgrades, int machine) last;
         public bool EditingAddress => address && address.isFocused;
         private bool initialized, showPerformance;
         private int measuredFrames;
@@ -216,7 +216,8 @@ namespace PlanetHarvest.UI
             crewButton.text = mining.Crew.Hosting || mining.Crew.IsGuest ? "Trennen" : "Crew hosten";
             var state = (mining.Equipment.Slot, mining.Target, mining.Bin ? mining.Bin.Material : MaterialId.None,
                 mining.AtWorkshop, pack.Revision, cargo.Revision, mining.Equipment.Tools.Active, mining.Menu,
-                mining.Equipment.Upgrades.Revision);
+                mining.Equipment.Upgrades.Revision,
+                mining.AimedRobot ? mining.AimedRobot.Robot.Revision : mining.AtHopper ? -2 - mining.Beams.Chain.Revision : -1);
             if (initialized && last.Equals(state)) return;
             last = state;
             initialized = true;
@@ -278,6 +279,18 @@ namespace PlanetHarvest.UI
                 if (i > 0) quantities[i].text = (pack.AmountOf(Materials[i]) / unit).ToString();
             }
             if (last.shop) hint.text = "E   Werkzeugstation öffnen";
+            else if (mining.AimedRobot)
+            {
+                var robot = mining.AimedRobot.Robot;
+                string phase = robot.State switch
+                {
+                    Machines.RobotState.Working => "arbeitet", Machines.RobotState.Full => "Trichter voll",
+                    Machines.RobotState.Finished => "Bereich fertig", _ => "gestoppt"
+                };
+                hint.text = robot.Hopper.Amount > 0
+                    ? $"E   {robot.Hopper.Amount / unit} m³ übernehmen  ·  {phase} {robot.Progress * 100:F0} %"
+                    : $"E   Start/Stopp  ·  {phase} {robot.Progress * 100:F0} %  ·  J abbauen";
+            }
             else if (mining.AtHopper) hint.text = mining.Beams.Chain.Hopper.Free < unit ? "Trichter voll · Strahl arbeitet" : "E   Sammeltrichter befüllen";
             else if (last.bin != MaterialId.None)
                 hint.text = cargo.Container(last.bin).Free == 0 ? "Voll beladen · wartet auf den Lift"

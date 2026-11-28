@@ -72,6 +72,8 @@ namespace PlanetHarvest.Core
         public FreightSnapshot freight;
         /// <summary>Tractor-beam chain. Absent before version 3, which means no chain.</summary>
         public BeamNetworkSnapshot logistics;
+        /// <summary>Drill robot; absent in older saves, which means no robot.</summary>
+        public Machines.RobotSnapshot robot;
 
         public const int CurrentVersion = 3;
 
@@ -91,12 +93,15 @@ namespace PlanetHarvest.Core
             }
         }
 
-        public void Validate(VoxelPlanet moon, FreightProgram program, UpgradeCatalog upgrades, BeamSettings beams, bool full)
+        public void Validate(VoxelPlanet moon, FreightProgram program, UpgradeCatalog upgrades, BeamSettings beams,
+            Machines.RobotSettings robots, bool full)
         {
             if (version != CurrentVersion || world != moon.WorldKey || host == null || guest == null || freight == null)
                 throw new InvalidDataException("Spielstand oder Planetenversion passt nicht.");
             if (logistics != null && logistics.nodes == null && logistics.chain == null) logistics = null;
             BeamNetwork.Validate(logistics, beams, moon.Data.Radius);
+            if (robot != null && robot.hopper == null && !robot.placed) robot = null;
+            Machines.DrillRobot.Validate(robot, robots.HopperCubicMetres * HarvestInventory.CubicMetre, robots.StrokeSeconds);
             host.Validate(upgrades);
             guest.Validate(upgrades);
             int slots = HarvestInventory.MaterialSlots;
@@ -138,7 +143,7 @@ namespace PlanetHarvest.Core
             {
                 int id = (int)spec.Id;
                 long booked = host.amounts[id] + guest.amounts[id] + freight.loadsByMaterial[id] + freight.deliveredByMaterial[id]
-                    + BeamChain.Holding(logistics?.chain, spec.Id);
+                    + BeamChain.Holding(logistics?.chain, spec.Id) + Machines.DrillRobot.Holding(robot, spec.Id);
                 if (booked != quantities[id]) throw new InvalidDataException("Materialbilanz stimmt nicht.");
             }
         }

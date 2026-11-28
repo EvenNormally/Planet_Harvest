@@ -16,4 +16,9 @@ umgesetzt wurde; Änderungen bitte hier vermerken.
 | 2026-11-28 | Transport | Freischaltung nach dem Landevertrag, Trichter 30 und Mast 40 Credits; Abbau erstattet den Preis und geht nur bei leerem letzten Abschnitt. | Kein Materialverlust beim Rückbau. |
 | 2026-11-28 | Transport | Bauen mit B (Gamepad Steuerkreuz hoch), Abbauen mit N (Steuerkreuz runter), Trichter befüllen mit E. | Freie Tasten, analog zur Ladeinteraktion am Lift. |
 | 2026-11-28 | Save | Version 3 enthält die Mastkette; ältere Stände laden ohne Kette. | Rückwärtskompatibel. |
+| 2026-11-28 | Bohrroboter | Ein Roboter pro Expedition, 80 Credits, Freischaltung nach dem Landevertrag, Platzieren/Abbauen mit J (Steuerkreuz links). | Erste Maschine im Vertical Slice; Abbau erstattet nur bei leerem Trichter. |
+| 2026-11-28 | Bohrroboter | Arbeitsbereich 8 × 8 Zellen, 2 über bis 4 unter der Oberfläche, Abbau in Tranchen von oben mit Profil Scheibe, ein Schlag je 0,8 s. | Sichtbarer, planbarer Fortschritt; langsamer als ein aufgerüsteter Spieler. |
+| 2026-11-28 | Bohrroboter | Schutzzone: kein Arbeitsbereich näher als 11 m an Lift oder Werkbank, zusätzlich schützt jeder Schnitt die Fundamente. | Doppelte Sicherung gegen Zerstörung der Basis. |
+| 2026-11-28 | Bohrroboter | E am Roboter übergibt zuerst den Trichterinhalt, sonst Start/Stopp; steht ein Sammeltrichter in 7 m Nähe, entlädt der Roboter automatisch dorthin. | Keine zusätzliche Taste; Roboter und Traktorstrahl ergänzen sich. |
+| 2026-11-28 | Bohrroboter | Energie entfällt im Slice. | Kurzkonzept sah Batterie vor; zurückgestellt, um Umfang zu halten. |
 | 2026-11-28 | QA | Profiling als PlayMode-Test, Bericht nur mit Umgebungsvariable nach `Docs/Reports/`. | Normale Testläufe verändern das Repository nicht. |

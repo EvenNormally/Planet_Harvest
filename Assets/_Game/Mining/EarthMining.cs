@@ -29,6 +29,8 @@ namespace PlanetHarvest.Mining
         public EarthElevator Elevator { get; private set; }
         public ToolStation Workshop { get; private set; }
         public BeamNetwork Beams { get; private set; }
+        public Machines.DrillRobotUnit Robot { get; private set; }
+        public Machines.DrillRobotUnit AimedRobot { get; private set; }
         public bool AtHopper { get; private set; }
         /// <summary>Feedback of the last build attempt for the HUD.</summary>
         public string BuildMessage { get; private set; } = string.Empty;
@@ -83,6 +85,9 @@ namespace PlanetHarvest.Mining
             Beams = new GameObject("Traktorstrahl").AddComponent<BeamNetwork>();
             Beams.transform.SetParent(planet.transform.parent, false);
             Beams.Initialize(planet, Elevator, Elevator.BeamSettings, IsFoundation);
+            Robot = new GameObject("Maschinen").AddComponent<Machines.DrillRobotUnit>();
+            Robot.transform.SetParent(planet.transform.parent, false);
+            Robot.Initialize(planet, Elevator.Freight, Beams, Elevator.RobotSettings, IsFoundation, NearBase);
             landscape = new GameObject("Landschaft").AddComponent<EarthLandscape>();
             landscape.transform.SetParent(planet.transform.parent, false);
             landscape.Populate(planet, view);
@@ -100,6 +105,7 @@ namespace PlanetHarvest.Mining
             if (Workshop) Destroy(Workshop.gameObject);
             if (Elevator) Destroy(Elevator.gameObject);
             if (Beams) Destroy(Beams.gameObject);
+            if (Robot) Destroy(Robot.gameObject);
             if (landscape) Destroy(landscape.gameObject);
         }
 
@@ -135,6 +141,28 @@ namespace PlanetHarvest.Mining
                 ? (Beams.MastCount == 0 ? "Sammeltrichter gebaut" : $"Mast {Beams.MastCount} gebaut") : reason;
         }
 
+        /// <summary>True for points inside the protected zone around elevator and workbench.</summary>
+        internal bool NearBase(Vector3 world) =>
+            Vector3.Distance(world, Elevator.transform.position) < Elevator.RobotSettings.ProtectedRadius ||
+            Vector3.Distance(world, Workshop.transform.position) < Elevator.RobotSettings.ProtectedRadius;
+
+        private void PlaceRobot()
+        {
+            if (Crew.IsGuest) { Crew.Request(Robot.Robot.Placed ? "robot_remove" : "robot_place", 0); return; }
+            if (Robot.Robot.Placed)
+            {
+                BuildMessage = Robot.TryRemove() ? "Bohrroboter abgebaut" : "Erst Robotertrichter leeren";
+                return;
+            }
+            if (!Physics.Raycast(view.transform.position, view.transform.forward, out var ground, BuildReach, ~0,
+                QueryTriggerInteraction.Ignore) || ground.collider.GetComponentInParent<VoxelPlanet>() != planet)
+            {
+                BuildMessage = "Roboter braucht festen Boden";
+                return;
+            }
+            BuildMessage = Robot.TryPlace(ground.point, out var reason) ? "Bohrroboter platziert · E startet" : reason;
+        }
+
         private void RemoveBeam()
         {
             if (Crew.IsGuest) { Crew.Request("unbuild", 0); return; }
@@ -157,6 +185,7 @@ namespace PlanetHarvest.Mining
             Bin = null;
             AtWorkshop = false;
             AtHopper = false;
+            AimedRobot = null;
             if (Menu != FieldMenu.Closed)
             {
                 if (hud && hud.EditingAddress && keys?.escapeKey.wasPressedThisFrame != true) return;
@@ -180,6 +209,7 @@ namespace PlanetHarvest.Mining
             Equipment.ReadSelection(Inventory);
             if (keys?.bKey.wasPressedThisFrame == true || pad?.dpad.up.wasPressedThisFrame == true) BuildBeam();
             if (keys?.nKey.wasPressedThisFrame == true || pad?.dpad.down.wasPressedThisFrame == true) RemoveBeam();
+            if (keys?.jKey.wasPressedThisFrame == true || pad?.dpad.left.wasPressedThisFrame == true) PlaceRobot();
             var tool = MiningTools.Spec(Equipment.Tools.Active);
             float reach = Equipment.Slot == 0 ? tool.Reach : InteractReach;
             if (!Physics.Raycast(view.transform.position, view.transform.forward, out var hit,
@@ -188,6 +218,18 @@ namespace PlanetHarvest.Mining
             {
                 AtWorkshop = station == Workshop && hit.distance <= InteractReach;
                 if (AtWorkshop && player.InteractPressed) SetMenu(FieldMenu.Workshop);
+                return;
+            }
+            if (hit.collider.TryGetComponent(out Machines.DrillRobotMarker marker))
+            {
+                if (hit.distance > InteractReach) return;
+                AimedRobot = marker.Unit;
+                if (player.InteractPressed)
+                {
+                    if (Crew.IsGuest) Crew.Request("robot", 0);
+                    else BuildMessage = marker.Unit.Use(Inventory);
+                    Equipment.Select(Equipment.Slot, Inventory);
+                }
                 return;
             }
             if (hit.collider.TryGetComponent(out BeamHopper _))

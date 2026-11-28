@@ -13,6 +13,8 @@ namespace PlanetHarvest.Logistics
         [SerializeField] private ElevatorContractSet contracts;
         [SerializeField] private BeamSettings beamSettings;
         public BeamSettings BeamSettings => beamSettings;
+        [SerializeField] private Machines.RobotSettings robotSettings;
+        public Machines.RobotSettings RobotSettings => robotSettings;
         private EarthCargoBin[] bins;
         private Material hardware;
         private Transform[] extensions;

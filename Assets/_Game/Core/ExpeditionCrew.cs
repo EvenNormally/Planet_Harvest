@@ -109,6 +109,7 @@ namespace PlanetHarvest.Core
                 Application.runInBackground = true;
                 miner.Elevator.Replica = true;
                 miner.Beams.Replica = true;
+                miner.Robot.Replica = true;
                 Status = "Verbindung wird hergestellt …";
             }
             catch (Exception e) { StopSession(); Status = "Beitritt fehlgeschlagen · " + e.Message; }
@@ -128,6 +129,7 @@ namespace PlanetHarvest.Core
             priorSolo = null;
             miner.Elevator.Replica = false;
             miner.Beams.Replica = false;
+            miner.Robot.Replica = false;
             Apply(saved, true, false);
         }
 
@@ -160,7 +162,8 @@ namespace PlanetHarvest.Core
                     body.position, body.rotation, miner.Profile),
                 guest = MinerSnapshot.Capture(otherPack, otherTools, otherUpgrades, otherPosition, otherRotation, otherProfile),
                 freight = miner.Elevator.Freight.Capture(),
-                logistics = miner.Beams.Capture()
+                logistics = miner.Beams.Capture(),
+                robot = miner.Robot.Capture()
             };
         }
 
@@ -168,7 +171,7 @@ namespace PlanetHarvest.Core
         {
             var program = miner.Elevator.Freight.Program;
             state.Upgrade(program);
-            state.Validate(miner.Planet, program, miner.Equipment.UpgradeCatalog, miner.Beams.Settings, full);
+            state.Validate(miner.Planet, program, miner.Equipment.UpgradeCatalog, miner.Beams.Settings, miner.Robot.Settings, full);
             if (full || state.removed.Length > 0) miner.Planet.ApplyCells(state.removed, full);
             var local = guest ? state.guest : state.host;
             var remote = guest ? state.host : state.guest;
@@ -179,6 +182,7 @@ namespace PlanetHarvest.Core
             otherProfile = remote.profile;
             miner.Elevator.Freight.Restore(state.freight);
             miner.Beams.Restore(state.logistics);
+            miner.Robot.Restore(state.robot);
             if (full)
             {
                 miner.Profile = local.profile;
@@ -199,7 +203,7 @@ namespace PlanetHarvest.Core
             try
             {
                 var state = Capture(true);
-                state.Validate(miner.Planet, miner.Elevator.Freight.Program, miner.Equipment.UpgradeCatalog, miner.Beams.Settings, true);
+                state.Validate(miner.Planet, miner.Elevator.Freight.Program, miner.Equipment.UpgradeCatalog, miner.Beams.Settings, miner.Robot.Settings, true);
                 ExpeditionSnapshot.Write(path, state);
                 Status = "Expedition gespeichert";
             }
@@ -307,6 +311,11 @@ namespace PlanetHarvest.Core
                 if ((uint)p.choice < MiningTools.Count) otherTools.Select((MiningTool)p.choice, miner.Elevator.Freight, nearShop);
                 return;
             }
+            if (p.kind == "robot_remove")
+            {
+                miner.Robot.TryRemove();
+                return;
+            }
             if (p.kind == "unbuild")
             {
                 miner.Beams.TryRemoveLast(miner.Elevator.Freight);
@@ -321,9 +330,12 @@ namespace PlanetHarvest.Core
             }
             if (!((p.eye - p.position).sqrMagnitude < 4 && p.forward.sqrMagnitude > .98f && p.forward.sqrMagnitude < 1.02f)) return;
             var spec = MiningTools.Spec(otherTools.Active);
-            float reach = p.kind == "build" ? EarthMining.BuildReach : p.kind == "cut" ? spec.Reach : EarthMining.InteractReach;
+            float reach = p.kind == "build" || p.kind == "robot_place" ? EarthMining.BuildReach : p.kind == "cut" ? spec.Reach : EarthMining.InteractReach;
             if (!Physics.Raycast(p.eye, p.forward, out var hit, reach, ~0, QueryTriggerInteraction.Ignore)) return;
             if (p.kind == "hopper" && hit.collider.TryGetComponent(out BeamHopper _)) miner.Beams.LoadHopper(otherPack);
+            if (p.kind == "robot" && hit.collider.TryGetComponent(out Machines.DrillRobotMarker marker)) marker.Unit.Use(otherPack);
+            if (p.kind == "robot_place" && hit.collider.GetComponentInParent<Voxel.VoxelPlanet>() == miner.Planet)
+                miner.Robot.TryPlace(hit.point, out _);
             if (p.kind == "build" && hit.collider.GetComponentInParent<Voxel.VoxelPlanet>() == miner.Planet)
                 miner.Beams.TryBuild(hit.point, miner.Elevator.Freight, out _);
             if (p.kind == "load" && hit.collider.TryGetComponent(out EarthCargoBin bin) && (int)bin.Material == p.choice)
